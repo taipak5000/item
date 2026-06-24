@@ -1,307 +1,417 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sky 星を紡ぐ子どもたち - 総合クローゼットマネージャー</title>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
-            --accent-gold: #f59e0b;
-            --accent-blue: #38bdf8;
-            --border-color: #334155;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アイテム収集管理</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Design tokens ─────────────────────────── */
+    :root {
+      --bg:        #F2F2F7;
+      --card:      #FFFFFF;
+      --sep:       rgba(60,60,67,0.12);
+      --orange:    #FF9500;
+      --orange-d:  #FF6200;
+      --orange-bg: rgba(255,149,0,0.10);
+      --blue:      #007AFF;
+      --blue-bg:   rgba(0,122,255,0.08);
+      --green:     #34C759;
+      --green-bg:  rgba(52,199,89,0.10);
+      --text:      #1C1C1E;
+      --text-2:    #8E8E93;
+      --text-3:    #C7C7CC;
+      --r:         16px;
+      --r-sm:      10px;
+    }
 
-        body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-        }
+    /* ── Reset ─────────────────────────────────── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    a { text-decoration:none; color:inherit; -webkit-tap-highlight-color:transparent; }
+    button { cursor:pointer; border:none; background:none; font-family:inherit; }
 
-        .header {
-            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-            padding: 40px 20px;
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-        }
+    /* ── Body ──────────────────────────────────── */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans',
+                   'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 60px;
+    }
 
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            letter-spacing: 2px;
-            color: var(--text-main);
-            text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
-        }
+    /* ── Navigation bar ────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(242,242,247,0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 0.5px solid var(--sep);
+      padding: 14px 20px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-title {
+      font-size: 17px; font-weight: 600; letter-spacing: -0.3px;
+    }
+    .nav-action {
+      color: var(--blue); font-size: 15px; padding: 4px 0;
+    }
 
-        .header p {
-            margin: 10px 0 0 0;
-            color: var(--text-sub);
-            font-size: 14px;
-        }
+    /* ── Content wrapper ───────────────────────── */
+    .wrap {
+      max-width: 720px; margin: 0 auto; padding: 0 16px;
+    }
 
-        .container {
-            max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
+    /* ── Section labels ────────────────────────── */
+    .sec-label {
+      font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text-2);
+      padding: 22px 4px 8px;
+    }
 
-        /* 総コンプリート率ダッシュボード */
-        .total-dashboard {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 40px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        }
+    /* ── Banner card (overall rate) ────────────── */
+    .banner {
+      background: linear-gradient(135deg, var(--orange-d) 0%, var(--orange) 55%, #FFBB00 100%);
+      border-radius: var(--r);
+      padding: 22px 20px;
+      color: #fff;
+      position: relative; overflow: hidden;
+      box-shadow: 0 4px 18px rgba(255,120,0,0.28);
+    }
 
-        .total-dashboard h2 {
-            margin: 0 0 15px 0;
-            font-size: 18px;
-            color: var(--accent-blue);
-        }
+    /* Decorative circles */
+    .banner::before {
+      content:''; position:absolute;
+      top:-40px; right:-30px;
+      width:180px; height:180px;
+      background: rgba(255,255,255,0.09);
+      border-radius: 50%; pointer-events:none;
+    }
+    .banner::after {
+      content:''; position:absolute;
+      bottom:-60px; right:60px;
+      width:220px; height:220px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%; pointer-events:none;
+    }
 
-        .total-progress-container {
-            background: #0f172a;
-            border-radius: 20px;
-            height: 24px;
-            width: 100%;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-            margin: 15px 0;
-        }
+    .banner-inner {
+      position: relative; z-index:1;
+      display: flex; align-items: center; gap: 18px;
+    }
 
-        .total-progress-bar {
-            background: linear-gradient(90deg, #38bdf8, #f59e0b);
-            height: 100%;
-            width: 0%;
-            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
-        }
+    /* Circular gauge */
+    .gauge-wrap {
+      flex-shrink: 0; position: relative;
+      width: 96px; height: 96px;
+    }
+    .gauge-svg {
+      width: 96px; height: 96px;
+      transform: rotate(-90deg);
+    }
+    .g-track {
+      fill: none;
+      stroke: rgba(255,255,255,0.28);
+      stroke-width: 8;
+    }
+    .g-fill {
+      fill: none;
+      stroke: #fff;
+      stroke-width: 8;
+      stroke-linecap: round;
+      /* r=38: C ≈ 238.8 */
+      stroke-dasharray: 238.8;
+      stroke-dashoffset: 238.8;
+      transition: stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1);
+    }
+    .gauge-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .gauge-pct {
+      font-size: 21px; font-weight: 700;
+      letter-spacing: -0.5px; line-height:1; color:#fff;
+    }
+    .gauge-lbl {
+      font-size: 8px; opacity: 0.78;
+      margin-top: 3px; letter-spacing: 0.8px;
+    }
 
-        .total-stats {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--text-main);
-        }
+    /* Banner text side */
+    .banner-text { flex:1; }
+    .banner-title {
+      font-size: 13px; opacity: 0.85;
+      margin-bottom: 12px; letter-spacing: 0.2px;
+    }
+    .banner-nums {
+      display: flex; gap: 24px;
+    }
+    .bnum-val {
+      font-size: 26px; font-weight: 700;
+      letter-spacing: -0.8px; line-height:1; color:#fff;
+    }
+    .bnum-lbl {
+      font-size: 11px; opacity: 0.8; margin-top: 4px;
+    }
 
-        .total-sub-stats {
-            font-size: 14px;
-            color: var(--text-sub);
-            margin-top: 5px;
-        }
+    /* ── Category grid ─────────────────────────── */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
 
-        /* メニューグリッド */
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
-        }
+    /* ── Category card ─────────────────────────── */
+    .cat-card {
+      display: block;
+      background: var(--card);
+      border-radius: var(--r);
+      padding: 14px 14px 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0.5px 1px rgba(0,0,0,0.04);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .cat-card:active {
+      transform: scale(0.965);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
 
-        /* カードスタイル */
-        .menu-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 20px;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-            overflow: hidden;
-        }
+    .cat-top {
+      display: flex; align-items: flex-start;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
 
-        .menu-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--accent-blue);
-            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.15);
-        }
+    .cat-icon-wrap {
+      display: flex; align-items: center; gap: 8px; flex:1; min-width:0;
+    }
 
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
+    .cat-icon {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      background: var(--bg);
+      display: flex; align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
 
-        .card-icon {
-            font-size: 32px;
-            background: #0f172a;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-        }
+    .cat-name {
+      font-size: 12px; font-weight: 600;
+      line-height: 1.35; color: var(--text);
+      word-break: break-all;
+    }
 
-        .card-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: var(--text-main);
-        }
+    .cat-pct {
+      font-size: 14px; font-weight: 700;
+      color: var(--orange); flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .cat-pct.high  { color: var(--green); }
+    .cat-pct.empty { color: var(--text-3); }
 
-        .card-body {
-            flex-grow: 1;
-        }
+    /* Progress bar */
+    .cat-bar {
+      height: 5px; border-radius: 3px;
+      background: var(--bg); overflow: hidden;
+      margin-bottom: 7px;
+    }
+    .cat-fill {
+      height: 100%; border-radius: 3px; width: 0%;
+      transition: width 1.2s cubic-bezier(0.22,1,0.36,1);
+      background: linear-gradient(90deg, var(--orange), #FFBB00);
+    }
+    .cat-fill.high {
+      background: linear-gradient(90deg, var(--green), #90EFA8);
+    }
 
-        .progress-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            color: var(--text-sub);
-            margin-bottom: 8px;
-        }
+    .cat-bottom {
+      display: flex; align-items: center;
+      justify-content: space-between;
+    }
+    .cat-count { font-size: 11px; color: var(--text-2); }
+    .cat-chevron { color: var(--text-3); font-size: 15px; font-weight: 300; }
 
-        .progress-percent {
-            font-weight: bold;
-            color: var(--accent-gold);
-        }
+    /* ── Hint box ──────────────────────────────── */
+    .hint {
+      margin-top: 10px;
+      background: var(--blue-bg);
+      border-radius: var(--r-sm);
+      padding: 12px 14px;
+      font-size: 12px;
+      color: var(--blue);
+      line-height: 1.65;
+      display: flex; gap: 6px;
+    }
 
-        .card-progress-container {
-            background: #0f172a;
-            border-radius: 10px;
-            height: 10px;
-            width: 100%;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-            margin-bottom: 15px;
-        }
-
-        .card-progress-bar {
-            background: var(--accent-blue);
-            height: 100%;
-            width: 0%;
-            transition: width 0.5s ease;
-        }
-
-        .card-action {
-            text-align: right;
-            font-size: 13px;
-            color: var(--accent-blue);
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 5px;
-        }
-
-        .menu-card:hover .card-action {
-            color: var(--accent-gold);
-        }
-    </style>
+    /* ── Responsive ────────────────────────────── */
+    @media (min-width: 600px) {
+      .cat-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 380px) {
+      .cat-grid { grid-template-columns: 1fr; }
+      .banner-nums { gap: 16px; }
+      .bnum-val { font-size: 22px; }
+    }
+  </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>Sky 星を紡ぐ子どもたち</h1>
-    <p>総合クローゼットマネージャー (ダッシュボード)</p>
-</div>
+<!-- ▸ Navigation bar -->
+<nav>
+  <div class="nav-title">🗂️ アイテム収集管理</div>
+  <button class="nav-action" onclick="loadAndRender()">更新</button>
+</nav>
 
-<div class="container">
-    
-    <div class="total-dashboard">
-        <h2>✨ クローゼット全体のコンプリート率 ✨</h2>
-        <div class="total-stats" id="total-percent">0%</div>
-        <div class="total-progress-container">
-            <div class="total-progress-bar" id="total-progress-bar"></div>
+<div class="wrap">
+
+  <!-- ▸ Overall rate banner -->
+  <p class="sec-label">全体の達成率</p>
+
+  <div class="banner">
+    <div class="banner-inner">
+
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" viewBox="0 0 96 96">
+          <circle class="g-track" cx="48" cy="48" r="38"/>
+          <circle class="g-fill"  cx="48" cy="48" r="38" id="gFill"/>
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-pct" id="oPct">--%</div>
+          <div class="gauge-lbl">TOTAL</div>
         </div>
-        <div class="total-sub-stats" id="total-count">総所持数: 0 / 0 個</div>
+      </div>
+
+      <div class="banner-text">
+        <div class="banner-title">コレクション達成率</div>
+        <div class="banner-nums">
+          <div>
+            <div class="bnum-val" id="sOwned">--</div>
+            <div class="bnum-lbl">所持中</div>
+          </div>
+          <div>
+            <div class="bnum-val" style="opacity:.72" id="sTotal">--</div>
+            <div class="bnum-lbl">総アイテム数</div>
+          </div>
+        </div>
+      </div>
+
     </div>
+  </div>
 
-    <div class="menu-grid" id="menu-grid">
-        </div>
+  <!-- ▸ Category cards -->
+  <p class="sec-label" id="catLabel">カテゴリ一覧</p>
 
-</div>
+  <div class="cat-grid" id="catGrid"><!-- JS --></div>
+
+  <div class="hint">
+    <span>💡</span>
+    <span>各カテゴリページでアイテムを登録すると、ここに所持率が自動で反映されます</span>
+  </div>
+
+</div><!-- /wrap -->
 
 <script>
-    // 全12カテゴリの定義情報とリンク先ファイル名
-    const categories = [
-        { id: "outfit", name: "アウトフィット", icon: "👗", file: "outfit.html" },
-        { id: "shoes", name: "シューズ", icon: "👟", file: "shoes.html" },
-        { id: "mask", name: "マスク", icon: "🎭", file: "mask.html" },
-        { id: "face_accessory", name: "フェイスアクセサリー", icon: "✨", file: "face_accessory.html" },
-        { id: "necklace", name: "ネックレス", icon: "📿", file: "necklace.html" }, // 旧 index.html
-        { id: "hairstyle", name: "ヘアスタイル", icon: "💇", file: "hairstyle.html" },
-        { id: "hair_accessory", name: "ヘアアクセサリー", icon: "🎀", file: "hair_accessory.html" },
-        { id: "head_accessory", name: "ヘッドアクセサリー", icon: "👑", file: "head_accessory.html" },
-        { id: "cape", name: "ケープ", icon: "🧥", file: "cape.html" },
-        { id: "prop", name: "持ち運べるアイテム", icon: "🎒", file: "prop.html" },
-        { id: "small_placeable", name: "小さい設置可能アイテム", icon: "🧸", file: "small_placeable.html" },
-        { id: "large_placeable", name: "大きい設置可能アイテム", icon: "⛺", file: "large_placeable.html" }
-    ];
+/* ── Category list ──────────────────────── */
+const CATS = [
+  { key:'outfit',          name:'アウトフィット',         file:'outfit.html',          icon:'🧥' },
+  { key:'shoes',           name:'シューズ',               file:'shoes.html',           icon:'👟' },
+  { key:'mask',            name:'マスク',                 file:'mask.html',            icon:'🎭' },
+  { key:'face_accessory',  name:'フェイスアクセサリー',   file:'face_accessory.html',  icon:'💎' },
+  { key:'necklace',        name:'ネックレス',             file:'necklace.html',        icon:'📿' },
+  { key:'hairstyle',       name:'ヘアスタイル',           file:'hairstyle.html',       icon:'💇' },
+  { key:'hair_accessory',  name:'ヘアアクセサリー',       file:'hair_accessory.html',  icon:'🎀' },
+  { key:'head_accessory',  name:'ヘッドアクセサリー',     file:'head_accessory.html',  icon:'👒' },
+  { key:'cape',            name:'ケープ',                 file:'cape.html',            icon:'🦸' },
+  { key:'portable_item',   name:'持ち運べるアイテム',     file:'portable_item.html',   icon:'🎒' },
+  { key:'small_placeable', name:'小さい設置アイテム',     file:'small_placeable.html', icon:'🏮' },
+  { key:'large_placeable', name:'大きい設置アイテム',     file:'large_placeable.html', icon:'🏛️' },
+];
 
-    // 各管理ページがまだ作られていない状態のとき用の暫定アイテム総数（各ページが開かれると自動で正確な数に上書きされます）
-    const defaultTotals = {
-        outfit: 30, shoes: 27, mask: 40, face_accessory: 15, necklace: 20,
-        hairstyle: 50, hair_accessory: 25, head_accessory: 20, cape: 60,
-        prop: 30, small_placeable: 25, large_placeable: 20
-    };
+const LS     = 'gameItems_';
+const CIRC   = 2 * Math.PI * 38; // ≈ 238.8
 
-    const gridContainer = document.getElementById('menu-grid');
-    let grandTotalOwned = 0;
-    let grandTotalItems = 0;
+/* ── Read localStorage ─────────────────── */
+function readCat(key) {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS + key));
+    if (d && typeof d.total === 'number' && d.total > 0) return d;
+  } catch(_) {}
+  return null;
+}
 
-    categories.forEach(cat => {
-        // 各詳細ページから保存された進捗データを取得
-        let progress = JSON.parse(localStorage.getItem('sky_progress_' + cat.id));
-        
-        // まだデータがない（一度も開いていない）場合は初期値をセット
-        if (!progress) {
-            progress = { owned: 0, total: defaultTotals[cat.id] || 0 };
-        }
+function pct(owned, total) {
+  return total > 0 ? Math.round(owned / total * 100) : null;
+}
 
-        const owned = progress.owned || 0;
-        const total = progress.total || 0;
-        const percent = total > 0 ? Math.round((owned / total) * 100) : 0;
+/* ── Card HTML ─────────────────────────── */
+function cardHTML(cat, data) {
+  const p    = data ? pct(data.owned, data.total) : null;
+  const high = p !== null && p >= 80;
+  const cls  = p === null ? 'empty' : high ? 'high' : '';
+  const pTxt = p !== null ? p + '%' : '--';
+  const cTxt = data ? `${data.owned} / ${data.total}` : '未登録';
 
-        // 全体の合計カウンターに加算
-        grandTotalOwned += owned;
-        grandTotalItems += total;
+  return `
+    <a class="cat-card" href="${cat.file}">
+      <div class="cat-top">
+        <div class="cat-icon-wrap">
+          <div class="cat-icon">${cat.icon}</div>
+          <div class="cat-name">${cat.name}</div>
+        </div>
+        <span class="cat-pct ${cls}">${pTxt}</span>
+      </div>
+      <div class="cat-bar">
+        <div class="cat-fill ${high ? 'high' : ''}"
+             style="width:0%" data-target="${p ?? 0}"></div>
+      </div>
+      <div class="cat-bottom">
+        <span class="cat-count">${cTxt}</span>
+        <span class="cat-chevron">›</span>
+      </div>
+    </a>`;
+}
 
-        // カードを画面に生成
-        const card = document.createElement('a');
-        card.className = 'menu-card';
-        card.href = cat.file;
-        card.innerHTML = `
-            <div>
-                <div class="card-header">
-                    <div class="card-icon">${cat.icon}</div>
-                    <div class="card-title">${cat.name}</div>
-                </div>
-                <div class="card-body">
-                    <div class="progress-info">
-                        <span>所持数: ${owned} / ${total}</span>
-                        <span class="progress-percent">${percent}%</span>
-                    </div>
-                    <div class="card-progress-container">
-                        <div class="card-progress-bar" style="width: ${percent}%"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="card-action">管理画面へ →</div>
-        `;
-        gridContainer.appendChild(card);
+/* ── Main render ───────────────────────── */
+function loadAndRender() {
+  let own = 0, tot = 0, active = 0;
+
+  const html = CATS.map(c => {
+    const d = readCat(c.key);
+    if (d) { own += d.owned; tot += d.total; active++; }
+    return cardHTML(c, d);
+  }).join('');
+
+  document.getElementById('catGrid').innerHTML = html;
+
+  const p = pct(own, tot);
+
+  document.getElementById('oPct').textContent   = p !== null ? p + '%' : '--%';
+  document.getElementById('sOwned').textContent = tot > 0 ? own : '--';
+  document.getElementById('sTotal').textContent = tot > 0 ? tot : '--';
+  document.getElementById('catLabel').textContent =
+    'カテゴリ一覧' + (active > 0 ? `（${active}/${CATS.length} 登録済み）` : '');
+
+  /* Gauge animation */
+  const fill = document.getElementById('gFill');
+  fill.style.strokeDasharray  = CIRC;
+  fill.style.strokeDashoffset = CIRC;
+
+  requestAnimationFrame(() => {
+    fill.style.strokeDashoffset = p !== null ? CIRC * (1 - p / 100) : CIRC;
+    document.querySelectorAll('.cat-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
     });
+  });
+}
 
-    // クローゼット全体のコンプリート率を計算・表示
-    const grandPercent = grandTotalItems > 0 ? Math.round((grandTotalOwned / grandTotalItems) * 100) : 0;
-    document.getElementById('total-percent').innerText = `${grandPercent}%`;
-    document.getElementById('total-progress-bar').style.width = `${grandPercent}%`;
-    document.getElementById('total-count').innerText = `総所持数: ${grandTotalOwned} / ${grandTotalItems} 個`;
-
+/* ── Init ──────────────────────────────── */
+document.addEventListener('DOMContentLoaded', loadAndRender);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) loadAndRender();
+});
 </script>
 </body>
 </html>
