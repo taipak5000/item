@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sky 星を紡ぐ子どもたち - シューズ所持チェッカー</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e67e22;
+            --bg-color: #f5f6fa;
+            --card-bg: #ffffff;
+            --bar-success: linear-gradient(90deg, #e67e22, #f39c12);
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+            background-color: var(--bg-color);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 18px;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 10px;
+            margin-top: 30px;
+        }
+
+        /* コンプリート率セクション */
+        .progress-section {
+            background: #eef2f5;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .progress-container {
+            background: #dcdde1;
+            border-radius: 10px;
+            height: 20px;
+            width: 100%;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: var(--bar-success);
+            height: 100%;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .progress-text {
+            font-weight: bold;
+            font-size: 18px;
+            color: var(--primary-color);
+        }
+
+        /* 欲しいアイテムリスト */
+        .wishlist-section {
+            background: #fff5eb;
+            border: 1px solid #fcdab7;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .wishlist-placeholder {
+            color: #aaa;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .wishlist-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .wish-tag {
+            background: #fcdab7;
+            color: #d35400;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .wish-tag:hover {
+            background: #f5b041;
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        /* アイテムテーブル */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: #fafbfc;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        /* チェックボックス・星ボタン */
+        .checkbox-owned {
+            transform: scale(1.3);
+            cursor: pointer;
+        }
+
+        .btn-star {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #ccc;
+            transition: color 0.2s;
+        }
+
+        .btn-star.active {
+            color: var(--accent-color);
+        }
+
+        /* ポップアップモダール */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 450px;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .modal h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 10px;
+            margin: 20px 0;
+            text-align: left;
+            font-size: 15px;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #7f8c8d;
+        }
+
+        .wiki-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #e67e22;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            box-sizing: border-box;
+            transition: background 0.2s;
+        }
+
+        .wiki-btn:hover {
+            background-color: #d35400;
+        }
+
+        .nav-link {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .nav-link a {
+            color: #3498db;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .nav-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="nav-link"><a href="index.html">← ネックレス所持チェッカーへ戻る</a></div>
+    <h1>Sky 星を紡ぐ子どもたち - シューズ所持チェッカー</h1>
+
+    <div class="progress-section">
+        <div class="progress-text">現在のコンプリート率: <span id="percent-display">0%</span></div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div id="count-display" style="font-size: 14px; color: #7f8c8d;">(0 / 0 個)</div>
+    </div>
+
+    <div class="wishlist-section">
+        <h2>★ 欲しいアイテムリスト (クリックで入手方法を確認)</h2>
+        <div id="wishlist-placeholder" class="wishlist-placeholder">リストアップされたアイテムはありません。下の表の「★」を押して追加してください。</div>
+        <div class="wishlist-items" id="wishlist-items"></div>
+    </div>
+
+    <h2>📦 アイテム一覧</h2>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th class="center" style="width: 60px;">所持</th>
+                    <th class="center" style="width: 60px;">欲しい</th>
+                    <th>アイテム名</th>
+                    <th>入手先 / 季節</th>
+                </tr>
+            </thead>
+            <tbody id="item-table-body">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal" id="detail-modal">
+    <div class="modal-content">
+        <span class="close-btn" id="modal-close">&times;</span>
+        <h3 id="modal-item-name">アイテム名</h3>
+        <div class="info-grid">
+            <div class="info-label">入手方法:</div>
+            <div id="modal-method"></div>
+            <div class="info-label">入手先:</div>
+            <div id="modal-source"></div>
+            <div class="info-label">価格:</div>
+            <div id="modal-price"></div>
+        </div>
+        <a href="#" class="wiki-btn" id="modal-wiki-link" target="_blank">Wikiで詳しく見る</a>
+    </div>
+</div>
+
+<script>
+    // Wikiのデータを元にしたシューズの一覧データ
+    const itemData = [
+        { id: "postman", name: "そっと覗く郵便屋 シューズ", method: "季節精霊ツリーよりエレメント交換", source: "夢かなう季節", price: "36 キャンドル" },
+        { id: "scout", name: "含み笑いのスカウト シューズ", method: "季節精霊ツリーよりエレメント交換", source: "大樹に集う季節", price: "32 キャンドル" },
+        { id: "child", name: "懇願する幼子 シューズ", method: "季節精霊ツリーよりエレメント交換", source: "追慕の季節", price: "30 キャンドル" },
+        { id: "storyteller", name: "夜鳥の語り部 シューズ", method: "案内人ツリー、または究極の贈り物", source: "復古の季節", price: "通常キャンドル / パス" },
+        { id: "oasis", name: "寂れたオアシスの面影 シューズ", method: "精霊ツリーよりエレメント交換", source: "九色の鹿の季節", price: "通常キャンドル" },
+        { id: "hideout", name: "見捨てられた隠れ家の残響 シューズ", method: "精霊ツリーよりエレメント交換", source: "巣づくりの季節", price: "通常キャンドル" },
+        { id: "paradise", name: "忘れ去られた楽園のなごり シューズ", method: "精霊ツリーよりエレメント交換", source: "音色の季節", price: "通常キャンドル" },
+        { id: "pianist", name: "栄光のピアニスト シューズ", method: "ショップにて課金購入、またはイベント交換", source: "奏の音楽堂", price: "ゲーム内ショップ" },
+        { id: "establishment", name: "自己の確立 シューズ", method: "精霊ツリーよりエレメント交換", source: "瞬きの季節", price: "通常キャンドル" },
+        { id: "performer", name: "光に染まる挑戦的な表現者 シューズ", method: "イベント精霊ツリーより交換", source: "光に染まる日々", price: "イベント専用通貨" },
+        { id: "dancer", name: "光に染まる飛び跳ねる舞踏家 シューズ", method: "イベント精霊ツリーより交換", source: "光に染まる日々", price: "イベント専用通貨" },
+        { id: "woodcutter", name: "木こりの訴えかける親 シューズ", method: "精霊ツリーよりエレメント交換", source: "ふたつの灯火−前篇", price: "通常キャンドル" },
+        { id: "soldier", name: "手負いの巡回兵 シューズ", method: "精霊ツリーよりエレメント交換", source: "渡りの季節", price: "通常キャンドル" },
+        { id: "migration_ultimate", name: "渡りの 究極シューズ", method: "究極の贈り物", source: "渡りの季節", price: "シーズンパス特典" },
+        { id: "rainbow_loafers", name: "月虹ローファー", method: "ショップにて課金購入、またはエレメント交換", source: "彩なす日々", price: "通常キャンドル / ショップ" },
+        { id: "sunny_sandals", name: "陽光ずんぐりサンダル", method: "イベント交換、またはショップ購入", source: "陽光の日々", price: "イベント通貨 / ショップ" },
+        { id: "witch_shoes", name: "いたずらウィッチ・ジャンパーシューズ", method: "ショップにて課金購入", source: "いたずらな日々", price: "ゲーム内ショップ" },
+        { id: "goth_boots", name: "いたずらゴスブーツ", method: "ショップにて課金購入", source: "いたずらな日々", price: "ゲーム内ショップ" },
+        { id: "silk_shoes", name: "お洒落シルクトゥシューズ", method: "ショップにて課金購入", source: "お洒落の日々", price: "ゲーム内ショップ" },
+        { id: "bunny_shoes", name: "月灯りバニーシューズ", method: "ショップにて課金購入", source: "来福の日々", price: "ゲーム内ショップ" },
+        { id: "hermit_boots", name: "隠者のぬくもりブーツ", method: "ショップにて課金購入", source: "聖なる日々", price: "ゲーム内ショップ" },
+        { id: "fluffy_leggings", name: "冬編むふわふわレッグウォーマー", method: "ショップにて課金購入", source: "聖なる日々", price: "ゲーム内ショップ" },
+        { id: "music_sneakers", name: "音楽の旅スニーカー", method: "ショップにて課金購入", source: "奏の音楽堂", price: "ゲーム内ショップ" },
+        { id: "cavalier_boots", name: "宝探しキャバリエブーツ", method: "イベント精霊よりエレメント交換", source: "宝探しの日々", price: "イベント通貨" },
+        { id: "foam_boots", name: "海の泡沫ブーツ", method: "イベント交換、またはショップ購入", source: "自然の日々", price: "イベント通貨 / ショップ" },
+        { id: "anniversary_slippers", name: "アニバーサリースリッパ", method: "イベント通貨またはハート交換", source: "Sky周年記念イベント", price: "イベント通貨 / ハート" },
+        { id: "tournament_skate", name: "大競技会スケートシューズ", method: "イベント交換、またはショップ購入", source: "大競技会イベント", price: "イベント通貨" }
+    ];
+
+    // ローカルストレージからシューズ専用の状態を読み込み
+    let ownedItems = JSON.parse(localStorage.getItem('sky_owned_shoes')) || [];
+    let wishItems = JSON.parse(localStorage.getItem('sky_wish_shoes')) || [];
+
+    const tableBody = document.getElementById('item-table-body');
+    const wishlistContainer = document.getElementById('wishlist-items');
+    const placeholder = document.getElementById('wishlist-placeholder');
+
+    // テーブルの初期生成
+    function initTable() {
+        tableBody.innerHTML = '';
+        itemData.forEach(item => {
+            const isOwned = ownedItems.includes(item.id);
+            const isWish = wishItems.includes(item.id);
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="center"><input type="checkbox" class="checkbox-owned" data-id="${item.id}" ${isOwned ? 'checked' : ''}></td>
+                <td class="center"><button class="btn-star ${isWish ? 'active' : ''}" data-id="${item.id}">${isWish ? '★' : '☆'}</button></td>
+                <td><strong>${item.name}</strong></td>
+                <td>${item.source}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+    }
+
+    // 計算と画面表示の更新
+    function updateStats() {
+        const total = itemData.length;
+        const ownedCount = ownedItems.length;
+        const percent = total > 0 ? Math.round((ownedCount / total) * 100) : 0;
+
+        document.getElementById('percent-display').innerText = `${percent}%`;
+        document.getElementById('progress-bar').style.width = `${percent}%`;
+        document.getElementById('count-display').innerText = `(${ownedCount} / ${total} 個)`;
+    }
+
+    // 欲しいものリストの更新
+    function updateWishlist() {
+        wishlistContainer.innerHTML = '';
+        
+        if (wishItems.length === 0) {
+            placeholder.style.display = 'block';
+            return;
+        }
+        placeholder.style.display = 'none';
+
+        wishItems.forEach(id => {
+            const item = itemData.find(i => i.id === id);
+            if (item) {
+                const tag = document.createElement('div');
+                tag.className = 'wish-tag';
+                tag.innerHTML = `👟 ${item.name}`;
+                tag.addEventListener('click', () => openModal(item));
+                wishlistContainer.appendChild(tag);
+            }
+        });
+    }
+
+    // 詳細モーダルを開く
+    function openModal(item) {
+        document.getElementById('modal-item-name').innerText = item.name;
+        document.getElementById('modal-method').innerText = item.method;
+        document.getElementById('modal-source').innerText = item.source;
+        document.getElementById('modal-price').innerText = item.price;
+        
+        const baseWikiUrl = "https://sky-children-of-the-light.fandom.com/ja/wiki/";
+        const targetPage = item.source.includes("季節") ? item.source : "シューズ";
+        document.getElementById('modal-wiki-link').href = baseWikiUrl + encodeURIComponent(targetPage);
+
+        document.getElementById('detail-modal').style.display = 'flex';
+    }
+
+    // テーブル内のクリックイベントを検知
+    tableBody.addEventListener('change', (e) => {
+        if (e.target.classList.contains('checkbox-owned')) {
+            const id = e.target.getAttribute('data-id');
+            if (e.target.checked) {
+                if (!ownedItems.includes(id)) ownedItems.push(id);
+            } else {
+                ownedItems = ownedItems.filter(item => item !== id);
+            }
+            localStorage.setItem('sky_owned_shoes', JSON.stringify(ownedItems));
+            updateStats();
+        }
+    });
+
+    tableBody.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-star')) {
+            const id = e.target.getAttribute('data-id');
+            if (wishItems.includes(id)) {
+                wishItems = wishItems.filter(item => item !== id);
+                e.target.innerText = '☆';
+                e.target.classList.remove('active');
+            } else {
+                wishItems.push(id);
+                e.target.innerText = '★';
+                e.target.classList.add('active');
+            }
+            localStorage.setItem('sky_wish_shoes', JSON.stringify(wishItems));
+            updateWishlist();
+        }
+    });
+
+    // モーダルを閉じる処理
+    document.getElementById('modal-close').addEventListener('click', () => {
+        document.getElementById('detail-modal').style.display = 'none';
+    });
+    window.addEventListener('click', (e) => {
+        if (e.target === document.getElementById('detail-modal')) {
+            document.getElementById('detail-modal').style.display = 'none';
+        }
+    });
+
+    // 初期化
+    initTable();
+    updateStats();
+    updateWishlist();
+</script>
+
+</body>
+</html>
