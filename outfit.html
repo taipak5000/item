@@ -3,433 +3,419 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sky 星を紡ぐ子どもたち - アウトフィット管理</title>
+    <title>アウトフィット・アイテム管理</title>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
-            --accent-gold: #f59e0b;
-            --accent-blue: #38bdf8;
-            --border-color: #334155;
-            --success-color: #10b981;
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #2ecc71;
+            --warning-color: #f1c40f;
+            --danger-color: #e74c3c;
+            --bg-color: #f4f6f7;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #dcdde1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
             background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
         }
 
-        /* ヘッダー */
-        .header {
-            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-            padding: 30px 20px;
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            position: relative;
-        }
-
-        .back-btn {
-            position: absolute;
-            left: 20px;
-            top: 35px;
-            color: var(--accent-blue);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            border: 1px solid var(--accent-blue);
-            padding: 6px 14px;
-            border-radius: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .back-btn:hover {
-            background-color: rgba(56, 189, 248, 0.1);
-            color: var(--accent-gold);
-            border-color: var(--accent-gold);
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            letter-spacing: 1px;
-        }
-
-        /* 固定ダッシュボード */
-        .dashboard {
-            background: rgba(30, 41, 59, 0.9);
-            border-bottom: 1px solid var(--border-color);
-            padding: 15px 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-
-        .dashboard-content {
-            max-width: 1000px;
+        .container {
+            max-width: 1100px;
             margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        }
+
+        header {
+            margin-bottom: 25px;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+
+        header h1 {
+            color: var(--primary-color);
+            font-size: 24px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
             gap: 20px;
         }
 
-        .stats-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-size: 16px;
-            font-weight: bold;
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr 2fr;
+            }
         }
 
-        .percent-box {
-            font-size: 24px;
-            color: var(--accent-gold);
-        }
-
-        .progress-wrapper {
-            flex-grow: 1;
-            background: #0f172a;
-            border: 1px solid var(--border-color);
-            height: 14px;
-            border-radius: 7px;
-            overflow: hidden;
-        }
-
-        .progress-bar {
-            background: linear-gradient(90deg, #38bdf8, #f59e0b);
-            height: 100%;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        /* メインコンテンツ */
-        .container {
-            max-width: 1000px;
-            margin: 30px auto;
-            padding: 0 20px 60px;
-        }
-
-        /* セクション区切り */
-        .section-title {
-            font-size: 20px;
-            color: var(--accent-blue);
-            border-left: 4px solid var(--accent-gold);
-            padding-left: 12px;
-            margin: 40px 0 20px;
-            letter-spacing: 1px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .section-count {
-            font-size: 14px;
-            color: var(--text-sub);
-            font-weight: normal;
-        }
-
-        /* アイテムグリッド */
-        .item-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 16px;
-        }
-
-        /* アイテムカード */
-        .item-card {
+        .card {
             background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 20px;
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            border-left: 5px solid var(--accent-color);
+            padding-left: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: #fff;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-submit {
+            display: inline-block;
+            padding: 12px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-            user-select: none;
-        }
-
-        .item-card:hover {
-            border-color: var(--accent-blue);
-            background-color: rgba(56, 189, 248, 0.03);
-            transform: translateY(-2px);
-        }
-
-        /* チェックボックス隠し */
-        .item-card input[type="checkbox"] {
-            display: none;
-        }
-
-        /* カスタムチェックマーク */
-        .checkbox-custom {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--border-color);
-            border-radius: 6px;
-            position: relative;
-            flex-shrink: 0;
-            transition: all 0.2s ease;
-        }
-
-        .item-card.owned .checkbox-custom {
-            background-color: var(--success-color);
-            border-color: var(--success-color);
-        }
-
-        .item-card.owned .checkbox-custom::after {
-            content: "✓";
-            position: absolute;
-            color: #fff;
             font-size: 14px;
             font-weight: bold;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            width: 100%;
+            transition: background 0.2s;
         }
 
-        .item-name {
+        .btn-submit:hover {
+            background-color: #2980b9;
+        }
+
+        /* フィルターボタンエリア */
+        .filter-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background-color: #eaeaea;
+            padding: 6px;
+            border-radius: 6px;
+            width: max-content;
+        }
+
+        .btn-filter {
+            padding: 8px 16px;
+            background: none;
+            border: none;
+            color: #555;
+            border-radius: 4px;
+            cursor: pointer;
             font-size: 14px;
-            line-height: 1.4;
-            color: var(--text-main);
-            transition: color 0.2s ease;
+            font-weight: bold;
+            transition: all 0.2s;
         }
 
-        .item-card.owned {
-            border-color: rgba(16, 185, 129, 0.4);
-            background: linear-gradient(145deg, #1e293b 0%, #111c2e 100%);
+        .btn-filter.active {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
 
-        .item-card.owned .item-name {
-            color: var(--text-sub);
-            text-decoration: line-through;
+        /* テーブルスタイル */
+        .table-wrapper {
+            overflow-x: auto;
         }
 
-        /* レスポンシブ */
-        @media (max-width: 600px) {
-            .dashboard-content {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 10px;
-            }
-            .stats-container {
-                justify-content: space-between;
-            }
-            .back-btn {
-                position: static;
-                display: inline-flex;
-                margin-bottom: 15px;
-            }
-            .header {
-                padding: 20px;
-            }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: #fcfcfc;
+        }
+
+        /* 状態バッジ */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .badge-owned {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .badge-wish {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        /* リンク・操作ボタン */
+        .btn-wiki {
+            display: inline-block;
+            padding: 6px 12px;
+            background-color: #9b59b6;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-wiki:hover {
+            background-color: #8e44ad;
+        }
+
+        .btn-delete {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 30px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <a href="index.html" class="back-btn">← 総合メニュー</a>
-    <h1>👗 アウトフィット管理 👗</h1>
-</div>
-
-<div class="dashboard">
-    <div class="dashboard-content">
-        <div class="stats-container">
-            <span>進捗率:</span>
-            <span class="percent-box" id="percent-display">0%</span>
-            <span id="count-display" style="color: var(--text-sub); font-size: 14px;">(0 / 0 個)</span>
-        </div>
-        <div class="progress-wrapper">
-            <div class="progress-bar" id="progress-bar"></div>
-        </div>
-    </div>
-</div>
-
 <div class="container">
+    <header>
+        <h1>アウトフィット・アイテム管理システム</h1>
+    </header>
 
-    <div class="section-title">
-        <span>👟 靴の無い服（通常のアウトフィット）</span>
-        <span class="section-count" id="count-normal">0 / 0</span>
+    <div class="grid">
+        <div class="card">
+            <h2>アイテムの登録</h2>
+            <form id="itemForm">
+                <div class="form-group">
+                    <label for="itemName">アイテム名</label>
+                    <input type="text" id="itemName" class="form-control" placeholder="例: エレガントドレス、金のネックレス" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="itemCategory">カテゴリ</label>
+                    <select id="itemCategory" class="form-control">
+                        <option value="ネックレス">ネックレス</option>
+                        <option value="トップス">トップス</option>
+                        <option value="ボトムス">ボトムス</option>
+                        <option value="アウター">アウター</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="itemStatus">状態（リストアップ設定）</label>
+                    <select id="itemStatus" class="form-control">
+                        <option value="ほしいアイテム">ほしいアイテム</option>
+                        <option value="所有済み">所有済み</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="itemWiki">Wiki URL (入手方法のリンク)</label>
+                    <input type="url" id="itemWiki" class="form-control" placeholder="https://wiki.example.com/item_page">
+                </div>
+                
+                <button type="submit" class="btn-submit">リストに追加する</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>アイテムリスト</h2>
+            
+            <div class="filter-container">
+                <button class="btn-filter active" onclick="filterItems('all')">すべて</button>
+                <button class="btn-filter" onclick="filterItems('ほしいアイテム')">ほしいアイテム</button>
+                <button class="btn-filter" onclick="filterItems('所有済み')">所有済み</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="itemTable">
+                    <thead>
+                        <tr>
+                            <th>アイテム名</th>
+                            <th>カテゴリ</th>
+                            <th>状態</th>
+                            <th>入手方法</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemTableBody">
+                        </tbody>
+                </table>
+                <div id="emptyMessage" class="empty-message" style="display: none;">
+                    表示するアイテムがありません。
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="item-grid" id="grid-normal"></div>
-
-    <div class="section-title">
-        <span>🧦 ワンジー（シューズ一体型スーツ）</span>
-        <span class="section-count" id="count-onesie">0 / 0</span>
-    </div>
-    <div class="item-grid" id="grid-onesie"></div>
-
 </div>
 
 <script>
-    // 1. 靴の無い服の一覧（恒常、過去の季節、日々イベント、コラボドレス等）
-    const normalOutfits = [
-        "デフォルト アウトフィット",
-        "かくれんぼ提唱者の服",
-        "凍える先駆者の服",
-        "敬けんな賢人の服",
-        "指差すキャンドル職人の服",
-        "自信に満ちた観光客の服",
-        "記憶の語り部の服",
-        "先導する星読みの服",
-        "蝶々使いの服",
-        "そっと覗く郵便屋の服",
-        "含み笑いのスカウトの服",
-        "ご満悦のうぬぼれ屋の服",
-        "万古の光の装い",
-        "覚醒の採掘者の服",
-        "AURORAの緑タイツ服",
-        "AURORAのランウェイ服",
-        "AURORAの究刻アウトフィット",
-        "懇願する幼子の服",
-        "節制の修行者の服",
-        "夜鳥の語り部の服",
-        "失われし村の記憶の服",
-        "九色の鹿の究刻アウトフィット",
-        "薬草採集人の服",
-        "王女のアウトフィット",
-        "駆けだしのピアニストの服",
-        "栄光のピアニストの服",
-        "駆けだしのチェリストの服",
-        "栄光のチェリストの服",
-        "包容力の源のアウトフィット",
-        "ムーミンのアウトフィット",
-        "ムーミンの究刻アウトフィット",
-        "光に染まる挑戦的な表現者の服",
-        "光に染まる飛び跳ねる舞踏家の服",
-        "光に染まる礼を尽くす祈祷師の服",
-        "木こりの訴えかける親の服",
-        "機知に富む隠とん者の服",
-        "手負いの巡回兵の服",
-        "心優しき玩具職人の服",
-        "渡りの鳥の語り部の服",
-        "渡りの究刻アウトフィット",
-        "渡りの海月の語り部の服",
-        "カーニバルの曲芸師の服",
-        "カーニバルの謎解き座長の服",
-        "花笑むひまわりサンドレス",
-        "花笑む緑のチュニック",
-        "海波の装い",
-        "虹かけるトラウザーズ",
-        "彩なす前結びジャンプスーツ",
-        "SkyFest5周年記念Tシャツ",
-        "大競技会チュニック",
-        "聖なるふわふわアウトフィット",
-        "トレジャーハンターの装い",
-        "陽光の水遊び着",
-        "陽光サンドレス",
-        "月灯りの衣",
-        "お洒落ワイドデニム",
-        "お洒落キラメキドレス",
-        "お洒落スタイリッシュスーツ",
-        "いたずらウィッチ・ジャンパースカート",
-        "いたずらゴススーツ",
-        "不思議のエプロンドレス",
-        "来福スネークパンツ",
-        "アニバーサリーロングドレス",
-        "大競技会スケートアウトフィット",
-        "宝探しの装い",
-        "自然のティアードドレス"
+    // ブラウザのローカルストレージからデータを読み込む（初期データがない場合はサンプルを配置）
+    let items = JSON.parse(localStorage.getItem('outfitItemsData')) || [
+        { id: 1, name: 'サファイアペンダント', category: 'ネックレス', status: '所有済み', wiki: 'https://ja.wikipedia.org/' },
+        { id: 2, name: '白銀のチョーカー', category: 'ネックレス', status: 'ほしいアイテム', wiki: 'https://ja.wikipedia.org/' },
+        { id: 3, name: '漆黒のロングコート', category: 'アウター', status: 'ほしいアイテム', wiki: '' }
     ];
 
-    // 2. ワンジーの一覧（リズムのズボン、海月の語り部、羽ばたく季節などのシューズ一体型）
-    const onesieOutfits = [
-        "音と舞う幼子のワンジー",
-        "一座の進行役のワンジー",
-        "一座の曲芸師のワンジー",
-        "祝祭の旋舞家のワンジー",
-        "うっとりするような旅役者のワンジー",
-        "海月の語り部のワンジー",
-        "奮い立つ怖いもの知らずのワンジー",
-        "腕利きの工匠のワンジー",
-        "天才建築たかのワンジー"
-    ];
+    let currentFilter = 'all';
 
-    // ローカルストレージキー
-    const STORAGE_KEY = 'sky_owned_outfit';
-    const PROGRESS_KEY = 'sky_progress_outfit';
+    const itemForm = document.getElementById('itemForm');
+    const itemTableBody = document.getElementById('itemTableBody');
+    const emptyMessage = document.getElementById('emptyMessage');
 
-    // 保存データの読み込み
-    let ownedItems = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-
-    const gridNormal = document.getElementById('grid-normal');
-    const gridOnesie = document.getElementById('grid-onesie');
-
-    // カード要素を生成する関数
-    function createCard(name) {
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        if (ownedItems.includes(name)) {
-            card.classList.add('owned');
-        }
-
-        card.innerHTML = `
-            <div class="checkbox-custom"></div>
-            <div class="item-name">${name}</div>
-        `;
-
-        // クリックイベント
-        card.addEventListener('click', () => {
-            if (ownedItems.includes(name)) {
-                ownedItems = ownedItems.filter(item => item !== name);
-                card.classList.remove('owned');
-            } else {
-                ownedItems.push(name);
-                card.classList.add('owned');
-            }
-            // ローカルストレージに選択データを保存
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(ownedItems));
-            updateStats();
+    // リスト描画処理
+    function renderItems() {
+        itemTableBody.innerHTML = '';
+        
+        // 選択されたフィルターに基づいてデータを抽出（リストアップ）
+        const filteredItems = items.filter(item => {
+            if (currentFilter === 'all') return true;
+            return item.status === currentFilter;
         });
 
-        return card;
+        if (filteredItems.length === 0) {
+            emptyMessage.style.display = 'block';
+        } else {
+            emptyMessage.style.display = 'none';
+            
+            filteredItems.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                // 状態（ほしい／所有）に応じた見た目の切り替え
+                const badgeClass = item.status === '所有済み' ? 'badge-owned' : 'badge-wish';
+                
+                // Wikiへのジャンプ機能（URLが登録されていない場合はテキストを表示）
+                const wikiButton = item.wiki 
+                    ? `<a href="${item.wiki}" target="_blank" class="btn-wiki">Wikiを開く ➔</a>` 
+                    : '<span style="color:#aaa; font-size:12px;">未登録</span>';
+
+                tr.innerHTML = `
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.category}</td>
+                    <td><span class="badge ${badgeClass}">${item.status}</span></td>
+                    <td>${wikiButton}</td>
+                    <td><button class="btn-delete" onclick="deleteItem(${item.id})">削除</button></td>
+                `;
+                itemTableBody.appendChild(tr);
+            });
+        }
     }
 
-    // アイテムを展開
-    normalOutfits.forEach(name => gridNormal.appendChild(createCard(name)));
-    onesieOutfits.forEach(name => gridOnesie.appendChild(createCard(name)));
+    // アイテム追加
+    itemForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('itemName').value;
+        const category = document.getElementById('itemCategory').value;
+        const status = document.getElementById('itemStatus').value;
+        const wiki = document.getElementById('itemWiki').value;
 
-    // 統計・進捗の更新関数
-    function updateStats() {
-        const totalItems = normalOutfits.length + onesieOutfits.length;
-        const totalOwned = ownedItems.length;
+        const newItem = {
+            id: Date.now(), // 簡易的なユニークID
+            name: name,
+            category: category,
+            status: status,
+            wiki: wiki
+        };
 
-        // セクションごとの個別集計
-        const normalOwned = normalOutfits.filter(name => ownedItems.includes(name)).length;
-        const onesieOwned = onesieOutfits.filter(name => ownedItems.includes(name)).length;
+        items.push(newItem);
+        saveData();
+        renderItems();
+        itemForm.reset();
+    });
 
-        // セクションの内訳表示を更新
-        document.getElementById('count-normal').innerText = `${normalOwned} / ${normalOutfits.length}`;
-        document.getElementById('count-onesie').innerText = `${onesieOwned} / ${onesieOutfits.length}`;
-
-        // 全体ダッシュボードの表示を更新
-        const percent = totalItems > 0 ? Math.round((totalOwned / totalItems) * 100) : 0;
-        document.getElementById('percent-display').innerText = `${percent}%`;
-        document.getElementById('progress-bar').style.width = `${percent}%`;
-        document.getElementById('count-display').innerText = `(${totalOwned} / ${totalItems} 個)`;
-
-        // ★総合メニュー（index.html）にリアルタイムで進捗を伝える保存処理
-        localStorage.setItem(PROGRESS_KEY, JSON.stringify({
-            owned: totalOwned,
-            total: totalItems
-        }));
+    // アイテム削除
+    function deleteItem(id) {
+        if (confirm('このアイテムをリストから削除しますか？')) {
+            items = items.filter(item => item.id !== id);
+            saveData();
+            renderItems();
+        }
     }
 
-    // 初回表示時に進捗を計算
-    updateStats();
+    // フィルター切り替え（ほしいアイテムのみのリストアップなど）
+    function filterItems(filterValue) {
+        currentFilter = filterValue;
+        
+        // ボタンのアクティブ状態の切り替え
+        const buttons = document.querySelectorAll('.btn-filter');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        
+        // クリックしたボタンをアクティブ化
+        event.target.classList.add('active');
+        
+        renderItems();
+    }
 
+    // ローカルストレージにデータを保存
+    function saveData() {
+        localStorage.setItem('outfitItemsData', JSON.stringify(items));
+    }
+
+    // 初回起動時の読み込み表示
+    renderItems();
 </script>
+
 </body>
 </html>
