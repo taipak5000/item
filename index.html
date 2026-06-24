@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sky 星を紡ぐ子どもたち - 総合クローゼットマネージャー</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent-gold: #f59e0b;
+            --accent-blue: #38bdf8;
+            --border-color: #334155;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            padding: 40px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            letter-spacing: 2px;
+            color: var(--text-main);
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            color: var(--text-sub);
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        /* 総コンプリート率ダッシュボード */
+        .total-dashboard {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 40px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .total-dashboard h2 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            color: var(--accent-blue);
+        }
+
+        .total-progress-container {
+            background: #0f172a;
+            border-radius: 20px;
+            height: 24px;
+            width: 100%;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin: 15px 0;
+        }
+
+        .total-progress-bar {
+            background: linear-gradient(90deg, #38bdf8, #f59e0b);
+            height: 100%;
+            width: 0%;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .total-stats {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .total-sub-stats {
+            font-size: 14px;
+            color: var(--text-sub);
+            margin-top: 5px;
+        }
+
+        /* メニューグリッド */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        /* カードスタイル */
+        .menu-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-blue);
+            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            font-size: 32px;
+            background: #0f172a;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .card-body {
+            flex-grow: 1;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-sub);
+            margin-bottom: 8px;
+        }
+
+        .progress-percent {
+            font-weight: bold;
+            color: var(--accent-gold);
+        }
+
+        .card-progress-container {
+            background: #0f172a;
+            border-radius: 10px;
+            height: 10px;
+            width: 100%;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+
+        .card-progress-bar {
+            background: var(--accent-blue);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .card-action {
+            text-align: right;
+            font-size: 13px;
+            color: var(--accent-blue);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 5px;
+        }
+
+        .menu-card:hover .card-action {
+            color: var(--accent-gold);
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Sky 星を紡ぐ子どもたち</h1>
+    <p>総合クローゼットマネージャー (ダッシュボード)</p>
+</div>
+
+<div class="container">
+    
+    <div class="total-dashboard">
+        <h2>✨ クローゼット全体のコンプリート率 ✨</h2>
+        <div class="total-stats" id="total-percent">0%</div>
+        <div class="total-progress-container">
+            <div class="total-progress-bar" id="total-progress-bar"></div>
+        </div>
+        <div class="total-sub-stats" id="total-count">総所持数: 0 / 0 個</div>
+    </div>
+
+    <div class="menu-grid" id="menu-grid">
+        </div>
+
+</div>
+
+<script>
+    // 全12カテゴリの定義情報とリンク先ファイル名
+    const categories = [
+        { id: "outfit", name: "アウトフィット", icon: "👗", file: "outfit.html" },
+        { id: "shoes", name: "シューズ", icon: "👟", file: "shoes.html" },
+        { id: "mask", name: "マスク", icon: "🎭", file: "mask.html" },
+        { id: "face_accessory", name: "フェイスアクセサリー", icon: "✨", file: "face_accessory.html" },
+        { id: "necklace", name: "ネックレス", icon: "📿", file: "necklace.html" }, // 旧 index.html
+        { id: "hairstyle", name: "ヘアスタイル", icon: "💇", file: "hairstyle.html" },
+        { id: "hair_accessory", name: "ヘアアクセサリー", icon: "🎀", file: "hair_accessory.html" },
+        { id: "head_accessory", name: "ヘッドアクセサリー", icon: "👑", file: "head_accessory.html" },
+        { id: "cape", name: "ケープ", icon: "🧥", file: "cape.html" },
+        { id: "prop", name: "持ち運べるアイテム", icon: "🎒", file: "prop.html" },
+        { id: "small_placeable", name: "小さい設置可能アイテム", icon: "🧸", file: "small_placeable.html" },
+        { id: "large_placeable", name: "大きい設置可能アイテム", icon: "⛺", file: "large_placeable.html" }
+    ];
+
+    // 各管理ページがまだ作られていない状態のとき用の暫定アイテム総数（各ページが開かれると自動で正確な数に上書きされます）
+    const defaultTotals = {
+        outfit: 30, shoes: 27, mask: 40, face_accessory: 15, necklace: 20,
+        hairstyle: 50, hair_accessory: 25, head_accessory: 20, cape: 60,
+        prop: 30, small_placeable: 25, large_placeable: 20
+    };
+
+    const gridContainer = document.getElementById('menu-grid');
+    let grandTotalOwned = 0;
+    let grandTotalItems = 0;
+
+    categories.forEach(cat => {
+        // 各詳細ページから保存された進捗データを取得
+        let progress = JSON.parse(localStorage.getItem('sky_progress_' + cat.id));
+        
+        // まだデータがない（一度も開いていない）場合は初期値をセット
+        if (!progress) {
+            progress = { owned: 0, total: defaultTotals[cat.id] || 0 };
+        }
+
+        const owned = progress.owned || 0;
+        const total = progress.total || 0;
+        const percent = total > 0 ? Math.round((owned / total) * 100) : 0;
+
+        // 全体の合計カウンターに加算
+        grandTotalOwned += owned;
+        grandTotalItems += total;
+
+        // カードを画面に生成
+        const card = document.createElement('a');
+        card.className = 'menu-card';
+        card.href = cat.file;
+        card.innerHTML = `
+            <div>
+                <div class="card-header">
+                    <div class="card-icon">${cat.icon}</div>
+                    <div class="card-title">${cat.name}</div>
+                </div>
+                <div class="card-body">
+                    <div class="progress-info">
+                        <span>所持数: ${owned} / ${total}</span>
+                        <span class="progress-percent">${percent}%</span>
+                    </div>
+                    <div class="card-progress-container">
+                        <div class="card-progress-bar" style="width: ${percent}%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-action">管理画面へ →</div>
+        `;
+        gridContainer.appendChild(card);
+    });
+
+    // クローゼット全体のコンプリート率を計算・表示
+    const grandPercent = grandTotalItems > 0 ? Math.round((grandTotalOwned / grandTotalItems) * 100) : 0;
+    document.getElementById('total-percent').innerText = `${grandPercent}%`;
+    document.getElementById('total-progress-bar').style.width = `${grandPercent}%`;
+    document.getElementById('total-count').innerText = `総所持数: ${grandTotalOwned} / ${grandTotalItems} 個`;
+
+</script>
+</body>
+</html>
