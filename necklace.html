@@ -421,6 +421,8 @@
             }
             localStorage.setItem('sky_owned_items', JSON.stringify(ownedItems));
             updateStats();
+            // ネックレス管理の進捗を総合メニューに伝えるコード
+localStorage.setItem('sky_progress_necklace', JSON.stringify({ owned: ownedItems.length, total: itemData.length }));
         }
     });
 
