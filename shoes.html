@@ -432,7 +432,18 @@
                 ownedItems = ownedItems.filter(item => item !== id);
             }
             localStorage.setItem('sky_owned_shoes', JSON.stringify(ownedItems));
-            updateStats();
+            function updateStats() {
+    const total = itemData.length;
+    const ownedCount = ownedItems.length;
+    const percent = total > 0 ? Math.round((ownedCount / total) * 100) : 0;
+
+    document.getElementById('percent-display').innerText = `${percent}%`;
+    document.getElementById('progress-bar').style.width = `${percent}%`;
+    document.getElementById('count-display').innerText = `(${ownedCount} / ${total} 個)`;
+
+    // ★ここを追加：シューズの進捗データをローカルストレージに保存（総合メニュー用）
+    localStorage.setItem('sky_progress_shoes', JSON.stringify({ owned: ownedCount, total: total }));
+}
         }
     });
 
