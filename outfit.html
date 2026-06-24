@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sky 星を紡ぐ子どもたち - アウトフィット管理</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent-gold: #f59e0b;
+            --accent-blue: #38bdf8;
+            --border-color: #334155;
+            --success-color: #10b981;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            top: 35px;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid var(--accent-blue);
+            padding: 6px 14px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background-color: rgba(56, 189, 248, 0.1);
+            color: var(--accent-gold);
+            border-color: var(--accent-gold);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+
+        /* 固定ダッシュボード */
+        .dashboard {
+            background: rgba(30, 41, 59, 0.9);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .dashboard-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .stats-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .percent-box {
+            font-size: 24px;
+            color: var(--accent-gold);
+        }
+
+        .progress-wrapper {
+            flex-grow: 1;
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            height: 14px;
+            border-radius: 7px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #38bdf8, #f59e0b);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* メインコンテンツ */
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 0 20px 60px;
+        }
+
+        /* セクション区切り */
+        .section-title {
+            font-size: 20px;
+            color: var(--accent-blue);
+            border-left: 4px solid var(--accent-gold);
+            padding-left: 12px;
+            margin: 40px 0 20px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-count {
+            font-size: 14px;
+            color: var(--text-sub);
+            font-weight: normal;
+        }
+
+        /* アイテムグリッド */
+        .item-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        /* アイテムカード */
+        .item-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            user-select: none;
+        }
+
+        .item-card:hover {
+            border-color: var(--accent-blue);
+            background-color: rgba(56, 189, 248, 0.03);
+            transform: translateY(-2px);
+        }
+
+        /* チェックボックス隠し */
+        .item-card input[type="checkbox"] {
+            display: none;
+        }
+
+        /* カスタムチェックマーク */
+        .checkbox-custom {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            position: relative;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+
+        .item-card.owned .checkbox-custom {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .item-card.owned .checkbox-custom::after {
+            content: "✓";
+            position: absolute;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .item-name {
+            font-size: 14px;
+            line-height: 1.4;
+            color: var(--text-main);
+            transition: color 0.2s ease;
+        }
+
+        .item-card.owned {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: linear-gradient(145deg, #1e293b 0%, #111c2e 100%);
+        }
+
+        .item-card.owned .item-name {
+            color: var(--text-sub);
+            text-decoration: line-through;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 600px) {
+            .dashboard-content {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .stats-container {
+                justify-content: space-between;
+            }
+            .back-btn {
+                position: static;
+                display: inline-flex;
+                margin-bottom: 15px;
+            }
+            .header {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <a href="index.html" class="back-btn">← 総合メニュー</a>
+    <h1>👗 アウトフィット管理 👗</h1>
+</div>
+
+<div class="dashboard">
+    <div class="dashboard-content">
+        <div class="stats-container">
+            <span>進捗率:</span>
+            <span class="percent-box" id="percent-display">0%</span>
+            <span id="count-display" style="color: var(--text-sub); font-size: 14px;">(0 / 0 個)</span>
+        </div>
+        <div class="progress-wrapper">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="section-title">
+        <span>👟 靴の無い服（通常のアウトフィット）</span>
+        <span class="section-count" id="count-normal">0 / 0</span>
+    </div>
+    <div class="item-grid" id="grid-normal"></div>
+
+    <div class="section-title">
+        <span>🧦 ワンジー（シューズ一体型スーツ）</span>
+        <span class="section-count" id="count-onesie">0 / 0</span>
+    </div>
+    <div class="item-grid" id="grid-onesie"></div>
+
+</div>
+
+<script>
+    // 1. 靴の無い服の一覧（恒常、過去の季節、日々イベント、コラボドレス等）
+    const normalOutfits = [
+        "デフォルト アウトフィット",
+        "かくれんぼ提唱者の服",
+        "凍える先駆者の服",
+        "敬けんな賢人の服",
+        "指差すキャンドル職人の服",
+        "自信に満ちた観光客の服",
+        "記憶の語り部の服",
+        "先導する星読みの服",
+        "蝶々使いの服",
+        "そっと覗く郵便屋の服",
+        "含み笑いのスカウトの服",
+        "ご満悦のうぬぼれ屋の服",
+        "万古の光の装い",
+        "覚醒の採掘者の服",
+        "AURORAの緑タイツ服",
+        "AURORAのランウェイ服",
+        "AURORAの究刻アウトフィット",
+        "懇願する幼子の服",
+        "節制の修行者の服",
+        "夜鳥の語り部の服",
+        "失われし村の記憶の服",
+        "九色の鹿の究刻アウトフィット",
+        "薬草採集人の服",
+        "王女のアウトフィット",
+        "駆けだしのピアニストの服",
+        "栄光のピアニストの服",
+        "駆けだしのチェリストの服",
+        "栄光のチェリストの服",
+        "包容力の源のアウトフィット",
+        "ムーミンのアウトフィット",
+        "ムーミンの究刻アウトフィット",
+        "光に染まる挑戦的な表現者の服",
+        "光に染まる飛び跳ねる舞踏家の服",
+        "光に染まる礼を尽くす祈祷師の服",
+        "木こりの訴えかける親の服",
+        "機知に富む隠とん者の服",
+        "手負いの巡回兵の服",
+        "心優しき玩具職人の服",
+        "渡りの鳥の語り部の服",
+        "渡りの究刻アウトフィット",
+        "渡りの海月の語り部の服",
+        "カーニバルの曲芸師の服",
+        "カーニバルの謎解き座長の服",
+        "花笑むひまわりサンドレス",
+        "花笑む緑のチュニック",
+        "海波の装い",
+        "虹かけるトラウザーズ",
+        "彩なす前結びジャンプスーツ",
+        "SkyFest5周年記念Tシャツ",
+        "大競技会チュニック",
+        "聖なるふわふわアウトフィット",
+        "トレジャーハンターの装い",
+        "陽光の水遊び着",
+        "陽光サンドレス",
+        "月灯りの衣",
+        "お洒落ワイドデニム",
+        "お洒落キラメキドレス",
+        "お洒落スタイリッシュスーツ",
+        "いたずらウィッチ・ジャンパースカート",
+        "いたずらゴススーツ",
+        "不思議のエプロンドレス",
+        "来福スネークパンツ",
+        "アニバーサリーロングドレス",
+        "大競技会スケートアウトフィット",
+        "宝探しの装い",
+        "自然のティアードドレス"
+    ];
+
+    // 2. ワンジーの一覧（リズムのズボン、海月の語り部、羽ばたく季節などのシューズ一体型）
+    const onesieOutfits = [
+        "音と舞う幼子のワンジー",
+        "一座の進行役のワンジー",
+        "一座の曲芸師のワンジー",
+        "祝祭の旋舞家のワンジー",
+        "うっとりするような旅役者のワンジー",
+        "海月の語り部のワンジー",
+        "奮い立つ怖いもの知らずのワンジー",
+        "腕利きの工匠のワンジー",
+        "天才建築たかのワンジー"
+    ];
+
+    // ローカルストレージキー
+    const STORAGE_KEY = 'sky_owned_outfit';
+    const PROGRESS_KEY = 'sky_progress_outfit';
+
+    // 保存データの読み込み
+    let ownedItems = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    const gridNormal = document.getElementById('grid-normal');
+    const gridOnesie = document.getElementById('grid-onesie');
+
+    // カード要素を生成する関数
+    function createCard(name) {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        if (ownedItems.includes(name)) {
+            card.classList.add('owned');
+        }
+
+        card.innerHTML = `
+            <div class="checkbox-custom"></div>
+            <div class="item-name">${name}</div>
+        `;
+
+        // クリックイベント
+        card.addEventListener('click', () => {
+            if (ownedItems.includes(name)) {
+                ownedItems = ownedItems.filter(item => item !== name);
+                card.classList.remove('owned');
+            } else {
+                ownedItems.push(name);
+                card.classList.add('owned');
+            }
+            // ローカルストレージに選択データを保存
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(ownedItems));
+            updateStats();
+        });
+
+        return card;
+    }
+
+    // アイテムを展開
+    normalOutfits.forEach(name => gridNormal.appendChild(createCard(name)));
+    onesieOutfits.forEach(name => gridOnesie.appendChild(createCard(name)));
+
+    // 統計・進捗の更新関数
+    function updateStats() {
+        const totalItems = normalOutfits.length + onesieOutfits.length;
+        const totalOwned = ownedItems.length;
+
+        // セクションごとの個別集計
+        const normalOwned = normalOutfits.filter(name => ownedItems.includes(name)).length;
+        const onesieOwned = onesieOutfits.filter(name => ownedItems.includes(name)).length;
+
+        // セクションの内訳表示を更新
+        document.getElementById('count-normal').innerText = `${normalOwned} / ${normalOutfits.length}`;
+        document.getElementById('count-onesie').innerText = `${onesieOwned} / ${onesieOutfits.length}`;
+
+        // 全体ダッシュボードの表示を更新
+        const percent = totalItems > 0 ? Math.round((totalOwned / totalItems) * 100) : 0;
+        document.getElementById('percent-display').innerText = `${percent}%`;
+        document.getElementById('progress-bar').style.width = `${percent}%`;
+        document.getElementById('count-display').innerText = `(${totalOwned} / ${totalItems} 個)`;
+
+        // ★総合メニュー（index.html）にリアルタイムで進捗を伝える保存処理
+        localStorage.setItem(PROGRESS_KEY, JSON.stringify({
+            owned: totalOwned,
+            total: totalItems
+        }));
+    }
+
+    // 初回表示時に進捗を計算
+    updateStats();
+
+</script>
+</body>
+</html>
