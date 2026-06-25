@@ -365,11 +365,11 @@
 <div class="app-layout">
 
   <!-- Sidebar -->
-  <aside class="sidebar" id="sidebar">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-      <div class="sb-label" style="margin-bottom:0;">🔗 関連ツール</div>
-      <button class="sb-close-btn" onclick="closeSidebar()">×</button>
-    </div>
+  <aside class="sidebar section-card" :class="{ 'sidebar-open': showSidebar }">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                <div class="sidebar-section-label" style="margin-bottom: 0;">🔗 関連ツール</div>
+                <button class="sidebar-close-btn" @click="showSidebar = false">×</button>
+            </div>
     <nav>
       <a href="https://taipak5000.github.io/skyzztai.management.tool/" class="sidebar-nav-link current-tool">
                     🕯️ キャンドル計算機
