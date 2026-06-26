@@ -1,420 +1,422 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>アウトフィット・アイテム管理</title>
-    <style>
-        :root {
-            --primary-color: #2c3e50;
-            --accent-color: #3498db;
-            --success-color: #2ecc71;
-            --warning-color: #f1c40f;
-            --danger-color: #e74c3c;
-            --bg-color: #f4f6f7;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --border-color: #dcdde1;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カテゴリ別アイテムチェック - Sky所持率管理</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Design tokens (総合メニューと完全統一) ──────────────── */
+    :root {
+      --bg:        #F2F2F7;
+      --card:      #FFFFFF;
+      --sep:       rgba(60,60,67,0.12);
+      --orange:    #FF9500;
+      --orange-d:  #FF6200;
+      --orange-bg: rgba(255,149,0,0.10);
+      --blue:      #007AFF;
+      --blue-bg:   rgba(0,122,255,0.08);
+      --green:     #34C759;
+      --green-bg:  rgba(52,199,89,0.10);
+      --text:      #1C1C1E;
+      --text-2:    #8E8E93;
+      --text-3:    #C7C7CC;
+      --r:         16px;
+      --r-sm:      10px;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    /* ── Reset & Body ─────────────────────────────────── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    a { text-decoration:none; color:inherit; -webkit-tap-highlight-color:transparent; }
+    button { cursor:pointer; border:none; background:none; font-family:inherit; }
 
-        body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            padding: 20px;
-        }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 60px;
+    }
 
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
+    /* ── Navigation bar ────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(242,242,247,0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 0.5px solid var(--sep); padding: 14px 20px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+    .nav-back { color: var(--blue); font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
 
-        header {
-            margin-bottom: 25px;
-            border-bottom: 3px solid var(--primary-color);
-            padding-bottom: 10px;
-        }
+    /* ── Layout ───────────────────────── */
+    .app-layout { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+    @media (min-width: 850px) { .app-layout { max-width: 960px; display: flex; gap: 20px; align-items: flex-start; } }
+    .wrap { flex: 1; min-width: 0; }
 
-        header h1 {
-            color: var(--primary-color);
-            font-size: 24px;
-        }
+    /* ── Sidebar (総合メニュー互換) ──────────────── */
+    .sidebar {
+      width: 200px; flex-shrink: 0; position: sticky; top: 58px;
+      background: var(--card); border-radius: var(--r); padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: none; margin-top: 22px;
+    }
+    @media (min-width: 850px) { .sidebar { display: block; } }
+    .sidebar-section-label { font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 8px; text-transform: uppercase; }
+    .sidebar-nav-link {
+      display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: var(--r-sm);
+      color: var(--text); font-size: 13.5px; font-weight: 500; margin-bottom: 2px;
+    }
+    .sidebar-nav-link:hover { background: var(--bg); }
+    .sidebar-nav-link.current-tool { background: var(--orange-bg); color: var(--orange); font-weight: 700; }
 
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
+    /* ── Category Header Banner ─────────────────── */
+    .cat-header-card {
+      background: var(--card); border-radius: var(--r); padding: 20px; margin-top: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .cat-header-info { display: flex; align-items: center; gap: 12px; }
+    .cat-header-icon { width: 44px; height: 44px; background: var(--bg); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .cat-header-name { font-size: 18px; font-weight: 700; }
+    .cat-header-count { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+    .cat-header-pct { font-size: 24px; font-weight: 800; color: var(--orange); }
 
-        @media (min-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr 2fr;
-            }
-        }
+    /* ── Filter / Sort Section ─────────────────── */
+    .control-panel {
+      background: var(--card); border-radius: var(--r); padding: 16px; margin-top: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; flex-direction: column; gap: 12px;
+    }
+    .control-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .control-label { font-size: 12px; font-weight: 600; color: var(--text-2); min-width: 60px; }
+    .select-box {
+      background: var(--bg); border: none; padding: 8px 12px; border-radius: var(--r-sm);
+      font-size: 13px; color: var(--text); font-weight: 500; outline: none; flex: 1; min-width: 120px;
+    }
 
-        .card {
-            background: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            padding: 20px;
-            border: 1px solid var(--border-color);
-        }
+    /* ── Item List ────────────────────────────── */
+    .sec-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-2); padding: 22px 4px 8px; }
+    .item-list { display: flex; flex-direction: column; gap: 8px; }
+    
+    /* Item Card */
+    .item-card {
+      background: var(--card); border-radius: var(--r); padding: 14px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      transition: background 0.2s;
+    }
+    .item-card.is-owned { background: rgba(52,199,89,0.03); }
+    .item-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+    
+    /* Checkbox Custom */
+    .check-btn {
+      width: 24px; height: 24px; border: 2px solid var(--text-3); border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; color: transparent; transition: all 0.15s; flex-shrink: 0;
+    }
+    .item-card.is-owned .check-btn { background: var(--green); border-color: var(--green); color: #fff; }
+    
+    /* Item Details */
+    .item-details { flex: 1; min-width: 0; }
+    .item-name-link {
+      font-size: 15px; font-weight: 600; color: var(--text); display: inline-block;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .item-name-link:hover { color: var(--blue); text-decoration: underline; }
+    .item-meta-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    
+    /* Badges */
+    .badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--bg); color: var(--text-2); }
+    .badge.premium { background: rgba(255,149,0,0.12); color: var(--orange-d); }
+    .badge.free { background: rgba(0,122,255,0.1); color: var(--blue); }
+    .badge.dye-o { background: rgba(52,199,89,0.12); color: var(--green); }
+    
+    /* Fav Button */
+    .fav-btn { font-size: 20px; color: var(--text-3); padding: 4px; transition: transform 0.1s; flex-shrink: 0; }
+    .fav-btn:active { transform: scale(1.2); }
+    .fav-btn.is-fav { color: #FFCC00; text-shadow: 0 0 2px rgba(255,180,0,0.4); }
 
-        .card h2 {
-            font-size: 18px;
-            margin-bottom: 15px;
-            color: var(--primary-color);
-            border-left: 5px solid var(--accent-color);
-            padding-left: 10px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 14px;
-            background-color: #fff;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
-        }
-
-        .btn-submit {
-            display: inline-block;
-            padding: 12px;
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            width: 100%;
-            transition: background 0.2s;
-        }
-
-        .btn-submit:hover {
-            background-color: #2980b9;
-        }
-
-        /* フィルターボタンエリア */
-        .filter-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            background-color: #eaeaea;
-            padding: 6px;
-            border-radius: 6px;
-            width: max-content;
-        }
-
-        .btn-filter {
-            padding: 8px 16px;
-            background: none;
-            border: none;
-            color: #555;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
-
-        .btn-filter.active {
-            background-color: var(--primary-color);
-            color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-        }
-
-        /* テーブルスタイル */
-        .table-wrapper {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-            text-align: left;
-        }
-
-        th, td {
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        th {
-            background-color: #f8f9fa;
-            color: var(--primary-color);
-            font-weight: bold;
-        }
-
-        tr:hover {
-            background-color: #fcfcfc;
-        }
-
-        /* 状態バッジ */
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            text-align: center;
-        }
-
-        .badge-owned {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .badge-wish {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        /* リンク・操作ボタン */
-        .btn-wiki {
-            display: inline-block;
-            padding: 6px 12px;
-            background-color: #9b59b6;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 13px;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-
-        .btn-wiki:hover {
-            background-color: #8e44ad;
-        }
-
-        .btn-delete {
-            background-color: var(--danger-color);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: background 0.2s;
-        }
-
-        .btn-delete:hover {
-            background-color: #c0392b;
-        }
-
-        .empty-message {
-            text-align: center;
-            color: #7f8c8d;
-            padding: 30px;
-            font-size: 14px;
-        }
-    </style>
+    /* Empty state */
+    .empty-message { text-align: center; padding: 40px; color: var(--text-2); font-size: 14px; background: var(--card); border-radius: var(--r); }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>アウトフィット・アイテム管理システム</h1>
-    </header>
+<!-- ▸ Navigation bar -->
+<nav>
+  <a href="index.html" class="nav-back">◀ 総合メニュー</a>
+  <div class="nav-title" id="pageTitle">アイテム所持チェック</div>
+  <div style="width:75px;"></div> <!-- バランス用スペース -->
+</nav>
 
-    <div class="grid">
-        <div class="card">
-            <h2>アイテムの登録</h2>
-            <form id="itemForm">
-                <div class="form-group">
-                    <label for="itemName">アイテム名</label>
-                    <input type="text" id="itemName" class="form-control" placeholder="例: エレガントドレス、金のネックレス" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="itemCategory">カテゴリ</label>
-                    <select id="itemCategory" class="form-control">
-                        <option value="ネックレス">ネックレス</option>
-                        <option value="トップス">トップス</option>
-                        <option value="ボトムス">ボトムス</option>
-                        <option value="アウター">アウター</option>
-                        <option value="その他">その他</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="itemStatus">状態（リストアップ設定）</label>
-                    <select id="itemStatus" class="form-control">
-                        <option value="ほしいアイテム">ほしいアイテム</option>
-                        <option value="所有済み">所有済み</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="itemWiki">Wiki URL (入手方法のリンク)</label>
-                    <input type="url" id="itemWiki" class="form-control" placeholder="https://wiki.example.com/item_page">
-                </div>
-                
-                <button type="submit" class="btn-submit">リストに追加する</button>
-            </form>
+<!-- ▸ App layout -->
+<div class="app-layout">
+
+  <!-- Sidebar (総合メニューへの簡易リンク) -->
+  <aside class="sidebar">
+    <div class="sidebar-section-label">🗂️ カテゴリメニュー</div>
+    <nav>
+      <a href="index.html" class="sidebar-nav-link">🏠 総合メニューに戻る</a>
+    </nav>
+  </aside>
+
+  <div class="wrap">
+
+    <!-- ▸ Category Status Banner -->
+    <div class="cat-header-card">
+      <div class="cat-header-info">
+        <div class="cat-header-icon" id="catIcon">📦</div>
+        <div>
+          <div class="cat-header-name" id="catName">カテゴリ名</div>
+          <div class="cat-header-count" id="catCount">-- / -- 所持</div>
         </div>
-
-        <div class="card">
-            <h2>アイテムリスト</h2>
-            
-            <div class="filter-container">
-                <button class="btn-filter active" onclick="filterItems('all')">すべて</button>
-                <button class="btn-filter" onclick="filterItems('ほしいアイテム')">ほしいアイテム</button>
-                <button class="btn-filter" onclick="filterItems('所有済み')">所有済み</button>
-            </div>
-
-            <div class="table-wrapper">
-                <table id="itemTable">
-                    <thead>
-                        <tr>
-                            <th>アイテム名</th>
-                            <th>カテゴリ</th>
-                            <th>状態</th>
-                            <th>入手方法</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="itemTableBody">
-                        </tbody>
-                </table>
-                <div id="emptyMessage" class="empty-message" style="display: none;">
-                    表示するアイテムがありません。
-                </div>
-            </div>
-        </div>
+      </div>
+      <div class="cat-header-pct" id="catPct">--%</div>
     </div>
-</div>
+
+    <!-- ▸ Filter & Sort Control Panel -->
+    <div class="control-panel">
+      <!-- 絞り込み -->
+      <div class="control-row">
+        <span class="control-label">絞り込み</span>
+        <select class="select-box" id="filterStatus" onchange="filterAndRender()">
+          <option value="all">すべての所持状態</option>
+          <option value="owned">所持中のみ</option>
+          <option value="notOwned">未所持のみ</option>
+        </select>
+        <select class="select-box" id="filterFav" onchange="filterAndRender()">
+          <option value="all">すべてのお気に入り</option>
+          <option value="fav">★ お気に入り指定のみ</option>
+        </select>
+      </div>
+      
+      <!-- 条件別絞り込み -->
+      <div class="control-row">
+        <span class="control-label">属性・条件</span>
+        <select class="select-box" id="filterCost" onchange="filterAndRender()">
+          <option value="all">すべての入手方法（課金/無課金）</option>
+          <option value="free">無課金アイテム</option>
+          <option value="premium">課金アイテム</option>
+        </select>
+        <select class="select-box" id="filterDye" onchange="filterAndRender()">
+          <option value="all">すべての染色可否</option>
+          <option value="dye-o">染色 〇</option>
+          <option value="dye-x">染色 ✕</option>
+        </select>
+      </div>
+
+      <!-- イベント名絞り込み ＆ 並び替え -->
+      <div class="control-row">
+        <span class="control-label">その他</span>
+        <select class="select-box" id="filterEvent" onchange="filterAndRender()">
+          <option value="all">すべてのイベント・登場元</option>
+          <!-- JSで動的に追加されます -->
+        </select>
+        <select class="select-box" id="sortOrder" onchange="filterAndRender()">
+          <option value="default">並び替え: 標準（実装順）</option>
+          <option value="nameAsc">アイテム名（昇順）</option>
+          <option value="event">イベント名順</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ▸ Item List Section -->
+    <p class="sec-label" id="listLabel">アイテム一覧</p>
+    <div class="item-list" id="itemList">
+      <!-- JSで動的に生成 -->
+    </div>
+
+  </div><!-- /wrap -->
+</div><!-- /.app-layout -->
 
 <script>
-    // ブラウザのローカルストレージからデータを読み込む（初期データがない場合はサンプルを配置）
-    let items = JSON.parse(localStorage.getItem('outfitItemsData')) || [
-        { id: 1, name: 'サファイアペンダント', category: 'ネックレス', status: '所有済み', wiki: 'https://ja.wikipedia.org/' },
-        { id: 2, name: '白銀のチョーカー', category: 'ネックレス', status: 'ほしいアイテム', wiki: 'https://ja.wikipedia.org/' },
-        { id: 3, name: '漆黒のロングコート', category: 'アウター', status: 'ほしいアイテム', wiki: '' }
-    ];
+/* ==========================================================================
+   🔧 設定エリア：作成するページに合わせてここを書き換えてください
+   ========================================================================== */
+// 1. このページのカテゴリキー（総合メニューの CATS 配列の key と一致させます）
+const CAT_KEY = 'outfit'; 
 
-    let currentFilter = 'all';
+// 2. このカテゴリの基本情報
+const CAT_INFO = { name: 'アウトフィット', icon: '🧥' };
 
-    const itemForm = document.getElementById('itemForm');
-    const itemTableBody = document.getElementById('itemTableBody');
-    const emptyMessage = document.getElementById('emptyMessage');
+// 3. アイテムのマスターデータ（ここにアイテムをどんどん追加していきます）
+// cost: 'free'(無課金) または 'premium'(課金)
+// dye: true(染色〇) または false(染色✕)
+const ITEMS_DATA = [
+  { id: 'outfit_001', name: '恒常の初期服', event: '恒常精霊', cost: 'free', dye: false },
+  { id: 'outfit_002', name: '大樹の案内人のズボン', event: '大樹の集いし季節', cost: 'free', dye: true },
+  { id: 'outfit_003', name: 'うさぎのあったかケープパック服', event: '来福の日々', cost: 'premium', dye: false },
+  { id: 'outfit_004', name: 'ならいの季節の袴', event: 'ならいの季節', cost: 'free', dye: true },
+  { id: 'outfit_005', name: '復興の案内人衣装', event: '帰れざる群風の季節', cost: 'premium', dye: true },
+];
+/* ========================================================================== */
 
-    // リスト描画処理
-    function renderItems() {
-        itemTableBody.innerHTML = '';
-        
-        // 選択されたフィルターに基づいてデータを抽出（リストアップ）
-        const filteredItems = items.filter(item => {
-            if (currentFilter === 'all') return true;
-            return item.status === currentFilter;
-        });
+const LS_KEY = 'gameItems_' + CAT_KEY;
+let userStates = { owned: {}, fav: {} };
 
-        if (filteredItems.length === 0) {
-            emptyMessage.style.display = 'block';
-        } else {
-            emptyMessage.style.display = 'none';
-            
-            filteredItems.forEach(item => {
-                const tr = document.createElement('tr');
-                
-                // 状態（ほしい／所有）に応じた見た目の切り替え
-                const badgeClass = item.status === '所有済み' ? 'badge-owned' : 'badge-wish';
-                
-                // Wikiへのジャンプ機能（URLが登録されていない場合はテキストを表示）
-                const wikiButton = item.wiki 
-                    ? `<a href="${item.wiki}" target="_blank" class="btn-wiki">Wikiを開く ➔</a>` 
-                    : '<span style="color:#aaa; font-size:12px;">未登録</span>';
+// 初期化処理
+document.addEventListener('DOMContentLoaded', () => {
+  // タイトル等UIの書き換え
+  document.title = `${CAT_INFO.name}所持チェック - Sky所持率管理`;
+  document.getElementById('pageTitle').textContent = `🗂️ ${CAT_INFO.name}チェック`;
+  document.getElementById('catName').textContent = CAT_INFO.name;
+  document.getElementById('catIcon').textContent = CAT_INFO.icon;
 
-                tr.innerHTML = `
-                    <td><strong>${item.name}</strong></td>
-                    <td>${item.category}</td>
-                    <td><span class="badge ${badgeClass}">${item.status}</span></td>
-                    <td>${wikiButton}</td>
-                    <td><button class="btn-delete" onclick="deleteItem(${item.id})">削除</button></td>
-                `;
-                itemTableBody.appendChild(tr);
-            });
-        }
+  // ローカルストレージからユーザーデータを復元
+  loadUserData();
+  // イベントの絞り込みセレクトボックスを構築
+  buildEventFilter();
+  // アイテムリストの表示
+  filterAndRender();
+});
+
+// ユーザーデータの読み込み
+function loadUserData() {
+  try {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // 旧バージョン互換性およびデータ構造担保
+      userStates.owned = parsed.itemOwned || {};
+      userStates.fav = parsed.itemFav || {};
     }
+  } catch (e) {
+    console.error("データ読み込み失敗:", e);
+  }
+}
 
-    // アイテム追加
-    itemForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const name = document.getElementById('itemName').value;
-        const category = document.getElementById('itemCategory').value;
-        const status = document.getElementById('itemStatus').value;
-        const wiki = document.getElementById('itemWiki').value;
+// ユーザーデータの保存（総合メニューの集計ロジックに対応させる）
+function saveUserData() {
+  // 現実の所持数と総数を計算
+  const total = ITEMS_DATA.length;
+  const owned = ITEMS_DATA.filter(item => userStates.owned[item.id]).length;
 
-        const newItem = {
-            id: Date.now(), // 簡易的なユニークID
-            name: name,
-            category: category,
-            status: status,
-            wiki: wiki
-        };
+  const dataToSave = {
+    total: total,
+    owned: owned,
+    itemOwned: userStates.owned, // 状態維持用
+    itemFav: userStates.fav       // 状態維持用
+  };
 
-        items.push(newItem);
-        saveData();
-        renderItems();
-        itemForm.reset();
-    });
+  localStorage.setItem(LS_KEY, JSON.stringify(dataToSave));
+  
+  // ヘッダーのパーセンテージ表示をリアルタイム更新
+  updateHeaderScore(owned, total);
+}
 
-    // アイテム削除
-    function deleteItem(id) {
-        if (confirm('このアイテムをリストから削除しますか？')) {
-            items = items.filter(item => item.id !== id);
-            saveData();
-            renderItems();
-        }
-    }
+// ヘッダーのスコア表示更新
+function updateHeaderScore(owned, total) {
+  const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
+  document.getElementById('catCount').textContent = `${owned} / ${total} 所持`;
+  document.getElementById('catPct').textContent = `${pct}%`;
+}
 
-    // フィルター切り替え（ほしいアイテムのみのリストアップなど）
-    function filterItems(filterValue) {
-        currentFilter = filterValue;
-        
-        // ボタンのアクティブ状態の切り替え
-        const buttons = document.querySelectorAll('.btn-filter');
-        buttons.forEach(btn => btn.classList.remove('active'));
-        
-        // クリックしたボタンをアクティブ化
-        event.target.classList.add('active');
-        
-        renderItems();
-    }
+// 重複のないイベントリストを絞り込みボックスに追加
+function buildEventFilter() {
+  const events = [...new Set(ITEMS_DATA.map(item => item.event))];
+  const select = document.getElementById('filterEvent');
+  events.forEach(ev => {
+    const opt = document.createElement('option');
+    opt.value = ev;
+    opt.textContent = ev;
+    select.appendChild(opt);
+  });
+}
 
-    // ローカルストレージにデータを保存
-    function saveData() {
-        localStorage.setItem('outfitItemsData', JSON.stringify(items));
-    }
+// 所持チェックの切り替え
+function toggleOwned(id) {
+  userStates.owned[id] = !userStates.owned[id];
+  saveUserData();
+  
+  // クラスの切り替えだけでスムーズにUIに反映
+  const card = document.getElementById(`card_${id}`);
+  if (card) {
+    card.classList.toggle('is-owned', userStates.owned[id]);
+  }
+}
 
-    // 初回起動時の読み込み表示
-    renderItems();
+// お気に入りチェックの切り替え
+function toggleFav(id, btn) {
+  userStates.fav[id] = !userStates.fav[id];
+  saveUserData();
+  
+  btn.classList.toggle('is-fav', userStates.fav[id]);
+  btn.textContent = userStates.fav[id] ? '★' : '☆';
+}
+
+// フィルター・ソートを適用してレンダリング
+function filterAndRender() {
+  const fStatus = document.getElementById('filterStatus').value;
+  const fFav = document.getElementById('filterFav').value;
+  const fCost = document.getElementById('filterCost').value;
+  const fDye = document.getElementById('filterDye').value;
+  const fEvent = document.getElementById('filterEvent').value;
+  const sOrder = document.getElementById('sortOrder').value;
+
+  // 1. 絞り込み (Filter)
+  let filtered = ITEMS_DATA.filter(item => {
+    const isOwned = !!userStates.owned[item.id];
+    const isFav = !!userStates.fav[item.id];
+
+    if (fStatus === 'owned' && !isOwned) return false;
+    if (fStatus === 'notOwned' && isOwned) return false;
+    if (fFav === 'fav' && !isFav) return false;
+    if (fCost !== 'all' && item.cost !== fCost) return false;
+    if (fDye === 'dye-o' && !item.dye) return false;
+    if (fDye === 'dye-x' && item.dye) return false;
+    if (fEvent !== 'all' && item.event !== fEvent) return false;
+
+    return true;
+  });
+
+  // 2. 並び替え (Sort)
+  if (sOrder === 'nameAsc') {
+    filtered.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  } else if (sOrder === 'event') {
+    filtered.sort((a, b) => a.event.localeCompare(b.event, 'ja'));
+  }
+
+  // 3. 出力 (Render)
+  const listEl = document.getElementById('itemList');
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="empty-message">該当するアイテムが見つかりません。</div>`;
+    // 全体数は変わらないため初期ヘッダーだけ更新
+    const total = ITEMS_DATA.length;
+    const owned = ITEMS_DATA.filter(item => userStates.owned[item.id]).length;
+    updateHeaderScore(owned, total);
+    return;
+  }
+
+  const html = filtered.map(item => {
+    const isOwned = !!userStates.owned[item.id];
+    const isFav = !!userStates.fav[item.id];
+    
+    // Fandom Wiki への自動検索用URLを生成
+    const wikiUrl = `https://sky-children-of-the-light.fandom.com/ja/wiki/Special:Search?query=${encodeURIComponent(item.name)}`;
+
+    return `
+      <div class="item-card ${isOwned ? 'is-owned' : ''}" id="card_${item.id}">
+        <div class="item-left" onclick="toggleOwned('${item.id}')" style="cursor:pointer;">
+          <div class="check-btn">✔</div>
+          <div class="item-details">
+            <!-- アイテム名クリックでWiki検索へジャンプ（バブリングを防ぐためストップ） -->
+            <a href="${wikiUrl}" target="_blank" rel="noopener noreferrer" class="item-name-link" onclick="event.stopPropagation();">
+              ${item.name} 🔗
+            </a>
+            <div class="item-meta-row">
+              <span class="badge">${item.event}</span>
+              <span class="badge ${item.cost === 'premium' ? 'premium' : 'free'}">${item.cost === 'premium' ? '課金' : '無課金'}</span>
+              <span class="badge ${item.dye ? 'dye-o' : ''}">染色 ${item.dye ? '〇' : '✕'}</span>
+            </div>
+          </div>
+        </div>
+        <!-- お気に入りボタン -->
+        <button class="fav-btn ${isFav ? 'is-fav' : ''}" onclick="toggleFav('${item.id}', this)">
+          ${isFav ? '★' : '☆'}
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  listEl.innerHTML = html;
+  
+  // スコアの同期
+  const total = ITEMS_DATA.length;
+  const owned = ITEMS_DATA.filter(item => userStates.owned[item.id]).length;
+  updateHeaderScore(owned, total);
+}
 </script>
 
 </body>
