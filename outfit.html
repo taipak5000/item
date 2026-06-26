@@ -134,17 +134,13 @@
 </head>
 <body>
 
-<!-- ▸ Navigation bar -->
 <nav>
   <a href="index.html" class="nav-back">◀ 総合メニュー</a>
   <div class="nav-title" id="pageTitle">アイテム所持チェック</div>
-  <div style="width:75px;"></div> <!-- バランス用スペース -->
-</nav>
+  <div style="width:75px;"></div> </nav>
 
-<!-- ▸ App layout -->
 <div class="app-layout">
 
-  <!-- Sidebar (総合メニューへの簡易リンク) -->
   <aside class="sidebar">
     <div class="sidebar-section-label">🗂️ カテゴリメニュー</div>
     <nav>
@@ -154,7 +150,6 @@
 
   <div class="wrap">
 
-    <!-- ▸ Category Status Banner -->
     <div class="cat-header-card">
       <div class="cat-header-info">
         <div class="cat-header-icon" id="catIcon">📦</div>
@@ -166,9 +161,7 @@
       <div class="cat-header-pct" id="catPct">--%</div>
     </div>
 
-    <!-- ▸ Filter & Sort Control Panel -->
     <div class="control-panel">
-      <!-- 絞り込み -->
       <div class="control-row">
         <span class="control-label">絞り込み</span>
         <select class="select-box" id="filterStatus" onchange="filterAndRender()">
@@ -182,7 +175,6 @@
         </select>
       </div>
       
-      <!-- 条件別絞り込み -->
       <div class="control-row">
         <span class="control-label">属性・条件</span>
         <select class="select-box" id="filterCost" onchange="filterAndRender()">
@@ -197,13 +189,11 @@
         </select>
       </div>
 
-      <!-- イベント名絞り込み ＆ 並び替え -->
       <div class="control-row">
         <span class="control-label">その他</span>
         <select class="select-box" id="filterEvent" onchange="filterAndRender()">
           <option value="all">すべてのイベント・登場元</option>
-          <!-- JSで動的に追加されます -->
-        </select>
+          </select>
         <select class="select-box" id="sortOrder" onchange="filterAndRender()">
           <option value="default">並び替え: 標準（実装順）</option>
           <option value="nameAsc">アイテム名（昇順）</option>
@@ -212,16 +202,11 @@
       </div>
     </div>
 
-    <!-- ▸ Item List Section -->
     <p class="sec-label" id="listLabel">アイテム一覧</p>
     <div class="item-list" id="itemList">
-      <!-- JSで動的に生成 -->
-    </div>
+      </div>
 
-  </div><!-- /wrap -->
-</div><!-- /.app-layout -->
-
-<script>
+  </div></div><script>
 /* ==========================================================================
    🔧 設定エリア：作成するページに合わせてここを書き換えてください
    ========================================================================== */
@@ -231,15 +216,70 @@ const CAT_KEY = 'outfit';
 // 2. このカテゴリの基本情報
 const CAT_INFO = { name: 'アウトフィット', icon: '🧥' };
 
-// 3. アイテムのマスターデータ（ここにアイテムをどんどん追加していきます）
-// cost: 'free'(無課金) または 'premium'(課金)
+// 3. アイテムのマスターデータ
+// 画像（Wikiの表）から読み取った実際の Sky アウトフィットデータを反映
+// cost: 'free'(無課金・ゲーム内通貨) または 'premium'(課金・パス究極)
 // dye: true(染色〇) または false(染色✕)
 const ITEMS_DATA = [
-  { id: 'outfit_001', name: '恒常の初期服', event: '恒常精霊', cost: 'free', dye: false },
-  { id: 'outfit_002', name: '大樹の案内人のズボン', event: '大樹の集いし季節', cost: 'free', dye: true },
-  { id: 'outfit_003', name: 'うさぎのあったかケープパック服', event: '来福の日々', cost: 'premium', dye: false },
-  { id: 'outfit_004', name: 'ならいの季節の袴', event: 'ならいの季節', cost: 'free', dye: true },
-  { id: 'outfit_005', name: '復興の案内人衣装', event: '帰れざる群風の季節', cost: 'premium', dye: true },
+  // ── 恒常・デフォルト ──
+  { id: 'outfit_001', name: 'デフォルトの服', event: 'デフォルト', cost: 'free', dye: false },
+  { id: 'outfit_002', name: '指差しするキャンドル職人のズボン', event: '恒常精霊', cost: 'free', dye: true },
+  { id: 'outfit_003', name: 'かくれんぼ先駆者のズボン', event: '恒常精霊', cost: 'free', dye: false },
+  { id: 'outfit_004', name: 'おねだりする幼子のズボン', event: '恒常精霊', cost: 'free', dye: false },
+  { id: 'outfit_005', name: '敬けんな賢人のズボン', event: '恒常精霊', cost: 'free', dye: false },
+  { id: 'outfit_006', name: '自信に満ちた観光客のズボン', event: '恒常精霊', cost: 'free', dye: false },
+  { id: 'outfit_007', name: '応援する観客のズボン', event: '恒常精霊', cost: 'free', dye: false },
+  { id: 'outfit_008', name: '飛び跳ねる舞踏手のズボン', event: '恒常精霊', cost: 'free', dye: false },
+  { id: 'outfit_009', name: '宙返りする優勝者のズボン', event: '恒常精霊', cost: 'free', dye: false },
+
+  // ── 過去の季節 ──
+  { id: 'outfit_010', name: 'お辞儀するメダル受賞者のズボン', event: '感謝の季節', cost: 'free', dye: true },
+  { id: 'outfit_011', name: '歓迎する劇団員のズボン', event: 'リズムが弾ける季節', cost: 'free', dye: true },
+  { id: 'outfit_012', name: 'おっちょこちょいな座長のズボン', event: 'リズムが弾ける季節', cost: 'free', dye: false },
+  { id: 'outfit_013', name: '敬意を表すピアニストのズボン', event: 'リズムが弾ける季節', cost: 'free', dye: true },
+  { id: 'outfit_014', name: '思索するディレクターのズボン', event: 'リズムが弾ける季節', cost: 'free', dye: false },
+  { id: 'outfit_015', name: '魔法の案内人のズボン（究極）', event: '魔法の季節', cost: 'premium', dye: true },
+  { id: 'outfit_016', name: '火の預言者のズボン', event: '預言者の季節', cost: 'free', dye: true },
+  { id: 'outfit_017', name: '行進する冒険家のズボン', event: '大樹の集いし季節', cost: 'free', dye: true },
+  { id: 'outfit_018', name: '臆病な見習いのズボン', event: '大樹の集いし季節', cost: 'free', dye: true },
+  { id: 'outfit_019', name: '星の収集家の服', event: '星の王子さまの季節', cost: 'free', dye: false },
+  { id: 'outfit_020', name: '王子さまの剣士服（究極）', event: '星の王子さまの季節', cost: 'premium', dye: true },
+  { id: 'outfit_021', name: '工夫好きの風鈴職人の服', event: '羽ばたく季節', cost: 'free', dye: false },
+  { id: 'outfit_022', name: '表現者たちの季節の服1', event: '表現者たちの季節', cost: 'free', dye: true },
+  { id: 'outfit_023', name: '表現者たちの季節の服2', event: '表現者たちの季節', cost: 'free', dye: true },
+  { id: 'outfit_024', name: '傷ついた戦士の服', event: '追慕の季節', cost: 'free', dye: true },
+  { id: 'outfit_025', name: '風変わりなひとり好きの服', event: 'ならいの季節', cost: 'free', dye: true },
+  { id: 'outfit_026', name: 'くつろぐ開拓者のズボン', event: '光の探究者の季節', cost: 'free', dye: true },
+  { id: 'outfit_027', name: '復興の案内人衣装', event: '復興の季節', cost: 'premium', dye: true },
+
+  // ── コラボ・特別パッケージ ──
+  { id: 'outfit_028', name: 'キズナアイの服', event: 'キズナアイコラボ', cost: 'premium', dye: false },
+  { id: 'outfit_029', name: 'Nintendo Switch 赤と青の服', event: 'Nintendo Switchパック', cost: 'premium', dye: false },
+  { id: 'outfit_030', name: 'Nintendo Switch 青の服', event: 'Nintendo Switchパック', cost: 'premium', dye: false },
+  { id: 'outfit_031', name: 'AURORAの服', event: 'AURORAの季節', cost: 'free', dye: true },
+  { id: 'outfit_032', name: 'ランナウェイの服', event: 'AURORAの季節', cost: 'premium', dye: true },
+  { id: 'outfit_033', name: '九色の鹿のエルフ服', event: '九色の鹿の季節', cost: 'premium', dye: false },
+  { id: 'outfit_034', name: 'ムーミントロールのロンパース', event: 'ムーミンの季節', cost: 'free', dye: true },
+
+  // ── 日々イベント（D / D*） ──
+  { id: 'outfit_035', name: 'いたずらウィッチジャンパースカート', event: 'いたずらな日々', cost: 'premium', dye: false },
+  { id: 'outfit_036', name: 'いたずらスパイダー・キルト', event: 'いたずらな日々', cost: 'premium', dye: true },
+  { id: 'outfit_037', name: '聖なる星のチュニック', event: '聖なる星の日々', cost: 'premium', dye: true },
+  { id: 'outfit_038', name: 'うさぎのあったかケープパック服', event: '来福の日々', cost: 'premium', dye: false },
+  { id: 'outfit_039', name: '花笑むパープルのチュニック', event: '花笑む日々', cost: 'free', dye: true },
+  { id: 'outfit_040', name: '花笑むピンクのチュニック', event: '花笑む日々', cost: 'premium', dye: true },
+  { id: 'outfit_041', name: '自然の海亀の服', event: '自然の日々', cost: 'premium', dye: true },
+  { id: 'outfit_042', name: '彩りのチュニック', event: '彩りの日々', cost: 'free', dye: true },
+  { id: 'outfit_043', name: '彩りの黒いチュニック', event: '彩りの日々', cost: 'premium', dye: true },
+  { id: 'outfit_044', name: '陽光のチュニック', event: '陽光の日々', cost: 'free', dye: true },
+  { id: 'outfit_045', name: '音楽の日々の行進服', event: '音楽の日々', cost: 'free', dye: true },
+
+  // ── ワンジー（繋ぎ服） ──
+  { id: 'outfit_046', name: '想いを編む季節の案内人の服（究極）', event: '想いを編む季節', cost: 'premium', dye: false },
+  { id: 'outfit_047', name: '夢かなう季節のスケーター服', event: '夢かなう季節', cost: 'free', dye: true },
+  { id: 'outfit_048', name: '深淵の案内人の潜水服', event: '深淵の季節', cost: 'free', dye: true },
+  { id: 'outfit_049', name: '砕ける闇の光の服', event: '砕ける闇の季節', cost: 'free', dye: false },
+  { id: 'outfit_050', name: '砕ける闇の闇の服', event: '砕ける闇の季節', cost: 'free', dye: false },
 ];
 /* ========================================================================== */
 
@@ -277,7 +317,7 @@ function loadUserData() {
   }
 }
 
-// ユーザーデータの保存（総合メニューの集計ロジックに対応させる）
+// ユーザーデータの保存
 function saveUserData() {
   // 現実の所持数と総数を計算
   const total = ITEMS_DATA.length;
@@ -391,7 +431,6 @@ function filterAndRender() {
         <div class="item-left" onclick="toggleOwned('${item.id}')" style="cursor:pointer;">
           <div class="check-btn">✔</div>
           <div class="item-details">
-            <!-- アイテム名クリックでWiki検索へジャンプ（バブリングを防ぐためストップ） -->
             <a href="${wikiUrl}" target="_blank" rel="noopener noreferrer" class="item-name-link" onclick="event.stopPropagation();">
               ${item.name} 🔗
             </a>
@@ -402,7 +441,6 @@ function filterAndRender() {
             </div>
           </div>
         </div>
-        <!-- お気に入りボタン -->
         <button class="fav-btn ${isFav ? 'is-fav' : ''}" onclick="toggleFav('${item.id}', this)">
           ${isFav ? '★' : '☆'}
         </button>
