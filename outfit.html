@@ -283,11 +283,17 @@ function saveUserData() {
   const total = ITEMS_DATA.length;
   const owned = ITEMS_DATA.filter(item => userStates.owned[item.id]).length;
 
+  // ランダムコーデ・マイコーデ機能向け: 所持アイテムの名前リストを保存
+  const ownedItems = ITEMS_DATA
+    .filter(item => userStates.owned[item.id])
+    .map(item => ({ id: item.id, name: item.name }));
+
   const dataToSave = {
     total: total,
     owned: owned,
     itemOwned: userStates.owned, // 状態維持用
-    itemFav: userStates.fav       // 状態維持用
+    itemFav: userStates.fav,     // 状態維持用
+    ownedItems: ownedItems        // コーデ機能用
   };
 
   localStorage.setItem(LS_KEY, JSON.stringify(dataToSave));
