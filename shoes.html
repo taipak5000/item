@@ -297,6 +297,8 @@ document.addEventListener('DOMContentLoaded', () => {
   buildEventFilter();
   // アイテムリストの表示
   filterAndRender();
+  // 総合メニューへ反映させるため、ページ表示のたびにデータを保存
+  saveUserData();
 });
 
 // ユーザーデータの読み込み
