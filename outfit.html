@@ -122,6 +122,7 @@
     .badge.premium { background: rgba(255,149,0,0.12); color: var(--orange-d); }
     .badge.free { background: rgba(0,122,255,0.1); color: var(--blue); }
     .badge.dye-o { background: rgba(52,199,89,0.12); color: var(--green); }
+    .badge.no-reprint { background: rgba(255,59,48,0.10); color: #FF3B30; }
     
     /* Fav Button */
     .fav-btn { font-size: 20px; color: var(--text-3); padding: 4px; transition: transform 0.1s; flex-shrink: 0; }
@@ -130,6 +131,18 @@
 
     /* Empty state */
     .empty-message { text-align: center; padding: 40px; color: var(--text-2); font-size: 14px; background: var(--card); border-radius: var(--r); }
+
+    /* ── Onesie section divider ───────────────────── */
+    .onesie-divider {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 4px 8px; color: var(--text-2);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+    }
+    .onesie-divider::before, .onesie-divider::after {
+      content: ''; flex: 1; height: 1.5px;
+      background: linear-gradient(90deg, var(--sep), rgba(60,60,67,0.06));
+      border-radius: 2px;
+    }
   </style>
 </head>
 <body>
@@ -194,6 +207,7 @@
           <option value="all">すべての染色可否</option>
           <option value="dye-o">染色 〇</option>
           <option value="dye-x">染色 ✕</option>
+          <option value="noReprint">復刻なし</option>
         </select>
       </div>
 
@@ -235,73 +249,77 @@ const CAT_INFO = { name: 'アウトフィット', icon: '🧥' };
 // cost: 'free'(無課金) または 'premium'(課金)
 // dye: true(染色〇) または false(染色✕)
 const ITEMS_DATA = [
- { id: 'outfit_001', name: 'デフォルト　服', event: '初期装備', cost: 'free', dye: false },
-  { id: 'outfit_002', name: 'かくれんぼ提唱者　服', event: '恒常精霊', cost: 'free', dye: false },
-  { id: 'outfit_003', name: '凍える先駆者　服', event: '恒常精霊', cost: 'free', dye: false },
-  { id: 'outfit_004', name: '敬けんな賢人　服', event: '恒常精霊', cost: 'free', dye: false },
-  { id: 'outfit_005', name: '指差すキャンドル職人　服', event: '恒常精霊', cost: 'free', dye: false },
-  { id: 'outfit_006', name: '自信に満ちた観光客　服', event: '恒常精霊', cost: 'free', dye: false },
-  { id: 'outfit_007', name: '記憶の語り部　服', event: '恒常精霊', cost: 'free', dye: false },
-  { id: 'outfit_008', name: '先導する星読み　服', event: '恒常精霊', cost: 'free', dye: false },
-  { id: 'outfit_009', name: '蝶々使い　服', event: '恒常精霊', cost: 'free', dye: false },
-  { id: 'outfit_010', name: 'そっと覗く郵便屋　服', event: '夢かなう季節', cost: 'free', dye: true },
-  { id: 'outfit_011', name: '含み笑いのスカウト　服', event: '大樹に集う季節', cost: 'free', dye: true },
-  { id: 'outfit_012', name: 'ご満悦のうぬぼれ屋　服', event: '星の王子さまの季節', cost: 'free', dye: false },
-  { id: 'outfit_013', name: '万古の光　服', event: '砕ケル闇ノ季節', cost: 'free', dye: false },
-  { id: 'outfit_014', name: '覚醒の採掘者　服', event: 'AURORAの季節', cost: 'free', dye: false },
-  { id: 'outfit_015', name: 'AURORAの究極　服', event: 'AURORAの季節', cost: 'premium', dye: false },
-  { id: 'outfit_016', name: 'AURORA　服', event: 'AURORAの季節', cost: 'free', dye: false },
-  { id: 'outfit_017', name: 'AURORA　服', event: 'AURORAの季節', cost: 'premium', dye: false },
-  { id: 'outfit_018', name: 'AURORA　服', event: 'AURORAの季節', cost: 'premium', dye: false },
-  { id: 'outfit_019', name: '懇願する幼子　服', event: '追慕の季節', cost: 'free', dye: true },
-  { id: 'outfit_020', name: '節制の修行者　服', event: '瞬きの季節', cost: 'free', dye: true },
-  { id: 'outfit_021', name: '夜鳥の語り部　服', event: '瞬きの季節', cost: 'free', dye: true },
-  { id: 'outfit_022', name: '失われし村の記憶　服', event: '復古の季節', cost: 'free', dye: false },
-  { id: 'outfit_023', name: '023', event: '入手期間終了', cost: 'premium', dye: false },
-  { id: 'outfit_024', name: '024', event: '過去の季節', cost: 'free', dye: false },
-  { id: 'outfit_025', name: '025', event: '過去の季節', cost: 'free', dye: false },
-  { id: 'outfit_026', name: '026', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_027', name: '027', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_028', name: '028', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_029', name: '029', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_030', name: '030', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_031', name: '031', event: '常時入手可能', cost: 'free', dye: true },
-  { id: 'outfit_032', name: '032', event: '入手期間終了', cost: 'premium', dye: true },
-  { id: 'outfit_033', name: '033', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_034', name: '034', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_035', name: '035', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_036', name: '036', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_037', name: '037', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_038', name: '038', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_039', name: '039', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_040', name: '040', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_041', name: '041', event: '入手期間終了', cost: 'premium', dye: true },
-  { id: 'outfit_042', name: '042', event: '過去の季節', cost: 'free', dye: true },
-  { id: 'outfit_043', name: '043', event: '季節期間中入手可能', cost: 'free', dye: true },
-  { id: 'outfit_044', name: '044', event: '季節期間中入手可能', cost: 'premium', dye: true },
-  { id: 'outfit_045', name: '045', event: '定期的に入手可能', cost: 'premium', dye: false },
-  { id: 'outfit_046', name: '046', event: '定期的に入手可能', cost: 'free', dye: false },
-  { id: 'outfit_047', name: '047', event: '定期的に入手可能', cost: 'free', dye: true },
-  { id: 'outfit_048', name: '048', event: '定期的に入手可能', cost: 'free', dye: true },
-  { id: 'outfit_049', name: '049', event: '定期的に入手可能', cost: 'premium', dye: true },
-  { id: 'outfit_050', name: '050', event: '販売終了', cost: 'free', dye: false },
-  { id: 'outfit_051', name: '051', event: '定期的に入手可能', cost: 'premium', dye: true },
-  { id: 'outfit_052', name: '052', event: '定期的に入手可能', cost: 'free', dye: true },
-  { id: 'outfit_053', name: '053', event: '定期的に入手可能', cost: 'premium', dye: true },
-  { id: 'outfit_054', name: '054', event: '定期的に入手可能', cost: 'free', dye: true },
-  { id: 'outfit_055', name: '055', event: '定期的に入手可能', cost: 'premium', dye: true },
-  { id: 'outfit_056', name: '056', event: '定期的に入手可能', cost: 'premium', dye: true },
-  { id: 'outfit_057', name: '057', event: '定期的に入手可能', cost: 'premium', dye: true },
-  { id: 'outfit_058', name: '058', event: '定期的に入手可能', cost: 'free', dye: true },
-  { id: 'outfit_059', name: '059', event: '定期的に入手可能', cost: 'premium', dye: true },
-  { id: 'outfit_060', name: '060', event: '定期的に入手可能', cost: 'premium', dye: true },
-  { id: 'outfit_061', name: '061', event: '定期的に入手可能', cost: 'free', dye: true },
-  { id: 'outfit_062', name: '062', event: '販売終了', cost: 'premium', dye: false },
-  { id: 'outfit_063', name: '063', event: '定期的に入手可能', cost: 'free', dye: true },
-  { id: 'outfit_064', name: '064', event: '定期的に入手可能', cost: 'premium', dye: true },
-  { id: 'outfit_065', name: '065', event: '定期的に入手可能', cost: 'premium', dye: true },
-  { id: 'outfit_066', name: '066', event: '定期的に入手可能', cost: 'free', dye: true },
-  { id: 'outfit_067', name: '067', event: '定期的に入手可能', cost: 'premium', dye: true },
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // type: 'outfit' = 通常の服 / 'onesie' = ワンジー
+  // noReprint: true = 復刻なし（現在入手不可）/ false = 入手可能性あり
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  { id: 'outfit_001', name: 'デフォルト　服', event: '初期装備', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_002', name: 'かくれんぼ提唱者　服', event: '恒常精霊', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_003', name: '凍える先駆者　服', event: '恒常精霊', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_004', name: '敬けんな賢人　服', event: '恒常精霊', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_005', name: '指差すキャンドル職人　服', event: '恒常精霊', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_006', name: '自信に満ちた観光客　服', event: '恒常精霊', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_007', name: '記憶の語り部　服', event: '恒常精霊', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_008', name: '先導する星読み　服', event: '恒常精霊', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_009', name: '蝶々使い　服', event: '恒常精霊', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_010', name: 'そっと覗く郵便屋　服', event: '夢かなう季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_011', name: '含み笑いのスカウト　服', event: '大樹に集う季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_012', name: 'ご満悦のうぬぼれ屋　服', event: '星の王子さまの季節', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_013', name: '万古の光　服', event: '砕ケル闇ノ季節', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_014', name: '覚醒の採掘者　服', event: 'AURORAの季節', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_015', name: 'AURORAの究極　服', event: 'AURORAの季節', cost: 'premium', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_016', name: 'AURORA　服', event: 'AURORAの季節', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_017', name: 'AURORA　服', event: 'AURORAの季節', cost: 'premium', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_018', name: 'AURORA　服', event: 'AURORAの季節', cost: 'premium', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_019', name: '懇願する幼子　服', event: '追慕の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_020', name: '節制の修行者　服', event: '瞬きの季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_021', name: '夜鳥の語り部　服', event: '瞬きの季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_022', name: '失われし村の記憶　服', event: '復古の季節', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_023', name: '023', event: '入手期間終了', cost: 'premium', dye: false, noReprint: true, type: 'outfit' },
+  { id: 'outfit_024', name: '024', event: '過去の季節', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_025', name: '025', event: '過去の季節', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_026', name: '026', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_027', name: '027', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_028', name: '028', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_029', name: '029', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_030', name: '030', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_031', name: '031', event: '常時入手可能', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_032', name: '032', event: '入手期間終了', cost: 'premium', dye: true, noReprint: true, type: 'outfit' },
+  { id: 'outfit_033', name: '033', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_034', name: '034', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_035', name: '035', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_036', name: '036', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_037', name: '037', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_038', name: '038', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_039', name: '039', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_040', name: '040', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_041', name: '041', event: '入手期間終了', cost: 'premium', dye: true, noReprint: true, type: 'outfit' },
+  { id: 'outfit_042', name: '042', event: '過去の季節', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_043', name: '043', event: '季節期間中入手可能', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_044', name: '044', event: '季節期間中入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_045', name: '045', event: '定期的に入手可能', cost: 'premium', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_046', name: '046', event: '定期的に入手可能', cost: 'free', dye: false, noReprint: false, type: 'outfit' },
+  { id: 'outfit_047', name: '047', event: '定期的に入手可能', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_048', name: '048', event: '定期的に入手可能', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_049', name: '049', event: '定期的に入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_050', name: '050', event: '販売終了', cost: 'free', dye: false, noReprint: true, type: 'outfit' },
+  { id: 'outfit_051', name: '051', event: '定期的に入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_052', name: '052', event: '定期的に入手可能', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_053', name: '053', event: '定期的に入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_054', name: '054', event: '定期的に入手可能', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_055', name: '055', event: '定期的に入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_056', name: '056', event: '定期的に入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_057', name: '057', event: '定期的に入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_058', name: '058', event: '定期的に入手可能', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_059', name: '059', event: '定期的に入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_060', name: '060', event: '定期的に入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_061', name: '061', event: '定期的に入手可能', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_062', name: '062', event: '販売終了', cost: 'premium', dye: false, noReprint: true, type: 'outfit' },
+  { id: 'outfit_063', name: '063', event: '定期的に入手可能', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_064', name: '064', event: '定期的に入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_065', name: '065', event: '定期的に入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_066', name: '066', event: '定期的に入手可能', cost: 'free', dye: true, noReprint: false, type: 'outfit' },
+  { id: 'outfit_067', name: '067', event: '定期的に入手可能', cost: 'premium', dye: true, noReprint: false, type: 'outfit' },
 ];
 /* ========================================================================== */
 
@@ -424,6 +442,7 @@ function filterAndRender() {
     if (fCost !== 'all' && item.cost !== fCost) return false;
     if (fDye === 'dye-o' && !item.dye) return false;
     if (fDye === 'dye-x' && item.dye) return false;
+    if (fDye === 'noReprint' && !item.noReprint) return false;
     if (fEvent !== 'all' && item.event !== fEvent) return false;
 
     return true;
@@ -447,13 +466,12 @@ function filterAndRender() {
     return;
   }
 
-  const html = filtered.map(item => {
+  // アイテム1枚のHTMLを生成するヘルパー
+  const renderItem = (item) => {
     const isOwned = !!userStates.owned[item.id];
     const isFav = !!userStates.fav[item.id];
-    
     // Google 検索用URLを生成
     const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + ' Sky 星を紡ぐ子どもたち')}`;
-
     return `
       <div class="item-card ${isOwned ? 'is-owned' : ''}" id="card_${item.id}">
         <div class="item-left" onclick="toggleOwned('${item.id}')" style="cursor:pointer;">
@@ -467,6 +485,7 @@ function filterAndRender() {
               <span class="badge">${item.event}</span>
               <span class="badge ${item.cost === 'premium' ? 'premium' : 'free'}">${item.cost === 'premium' ? '課金' : '無課金'}</span>
               <span class="badge ${item.dye ? 'dye-o' : ''}">染色 ${item.dye ? '〇' : '✕'}</span>
+              ${item.noReprint ? `<span class="badge no-reprint">復刻なし</span>` : ''}
             </div>
           </div>
         </div>
@@ -476,7 +495,21 @@ function filterAndRender() {
         </button>
       </div>
     `;
-  }).join('');
+  };
+
+  // タイプ別にグループ化（通常の服 → ワンジー の順）
+  const outfitItems = filtered.filter(item => item.type !== 'onesie');
+  const onesieItems = filtered.filter(item => item.type === 'onesie');
+
+  let html = outfitItems.map(renderItem).join('');
+
+  if (onesieItems.length > 0) {
+    // 両グループが混在するときだけ区切り線を表示
+    if (outfitItems.length > 0) {
+      html += `<div class="onesie-divider"><span>🧸 ワンジー</span></div>`;
+    }
+    html += onesieItems.map(renderItem).join('');
+  }
 
   listEl.innerHTML = html;
   
