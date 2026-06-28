@@ -729,6 +729,10 @@ document.addEventListener('DOMContentLoaded', loadAndRender);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) loadAndRender();
 });
+// 戻るボタンや他ページからの遷移でも確実に再取得
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) loadAndRender();
+});
 /* ── Sidebar ────────────────────────────── */
 function toggleSidebar() {
   const s = document.getElementById('sidebar');
