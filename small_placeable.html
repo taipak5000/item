@@ -420,6 +420,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadUserData();
   // イベントの絞り込みセレクトボックスを構築
   buildEventFilter();
+  // 色の絞り込みセレクトボックスを構築
+  buildTypeFilter();
   // アイテムリストの表示
   filterAndRender();
   // 総合メニューへ反映させるため、ページ表示のたびにデータを保存
@@ -485,6 +487,18 @@ function buildEventFilter() {
   });
 }
 
+// 重複のない色リストを絞り込みボックスに追加
+function buildTypeFilter() {
+  const types = [...new Set(ITEMS_DATA.map(item => item.type).filter(Boolean))];
+  const select = document.getElementById('filterType');
+  types.forEach(type => {
+    const opt = document.createElement('option');
+    opt.value = type;
+    opt.textContent = type;
+    select.appendChild(opt);
+  });
+}
+
 // 所持チェックの切り替え
 function toggleOwned(id) {
   userStates.owned[id] = !userStates.owned[id];
@@ -514,6 +528,7 @@ function filterAndRender() {
   const fDye = document.getElementById('filterDye').value;
   const fReprint = document.getElementById('filterReprint').value;
   const fEvent = document.getElementById('filterEvent').value;
+  const fType = document.getElementById('filterType').value;
   const sOrder = document.getElementById('sortOrder').value;
   const fName = document.getElementById('searchName').value.trim().toLowerCase();
 
@@ -531,6 +546,7 @@ function filterAndRender() {
     if (fDye === 'dye-x' && item.dye) return false;
     if (fReprint === 'noReprint' && !item.noReprint) return false;
     if (fEvent !== 'all' && item.event !== fEvent) return false;
+    if (fType !== 'all' && item.type !== fType) return false;
 
     return true;
   });
@@ -540,6 +556,8 @@ function filterAndRender() {
     filtered.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
   } else if (sOrder === 'event') {
     filtered.sort((a, b) => a.event.localeCompare(b.event, 'ja'));
+  } else if (sOrder === 'type') {
+    filtered.sort((a, b) => (a.type || '').localeCompare(b.type || '', 'ja'));
   }
 
   // 3. 出力 (Render)
@@ -573,6 +591,7 @@ function filterAndRender() {
               <span class="badge ${item.cost === 'premium' ? 'premium' : 'free'}">${item.cost === 'premium' ? '課金' : '無課金'}</span>
               <span class="badge ${item.dye ? 'dye-o' : ''}">染色 ${item.dye ? '〇' : '✕'}</span>
               ${item.noReprint ? `<span class="badge no-reprint">復刻なし</span>` : ''}
+              ${item.type ? `<span class="badge type-badge">${item.type}</span>` : ''}
             </div>
           </div>
         </div>
@@ -584,21 +603,9 @@ function filterAndRender() {
     `;
   };
 
-  // タイプ別にグループ化（通常の服 → ワンジー の順）
-  const outfitItems = filtered.filter(item => item.type !== 'onesie');
-  const onesieItems = filtered.filter(item => item.type === 'onesie');
 
-  let html = outfitItems.map(renderItem).join('');
 
-  if (onesieItems.length > 0) {
-    // 両グループが混在するときだけ区切り線を表示
-    if (outfitItems.length > 0) {
-      html += `<div class="onesie-divider"><span>🧸 ワンジー</span></div>`;
-    }
-    html += onesieItems.map(renderItem).join('');
-  }
 
-  listEl.innerHTML = html;
   
   // スコアの同期
   const total = ITEMS_DATA.length;
@@ -612,7 +619,7 @@ function filterAndRender() {
   作成・ご意見: <a href="https://x.com/Skyzztai" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none; font-weight:bold;">@Skyzztai</a>
   <span style="color:var(--text-2); font-size:12px; margin-top:4px; display:inline-block;">
     参考データ:
-    <a href="https://sky-children-of-the-light.fandom.com/ja/wiki/%E3%82%B7%E3%83%A5%E3%83%BC%E3%82%BA" target="_blank" rel="noopener noreferrer">シューズ (Sky Wiki 日本語)</a>
+    <a href="https://sky-children-of-the-light.fandom.com/ja/wiki/%E3%82%B1%E3%83%BC%E3%83%97" target="_blank" rel="noopener noreferrer">ケープ (Sky Wiki 日本語)</a>
   </span>
 </footer>
 
