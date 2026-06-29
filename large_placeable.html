@@ -260,7 +260,7 @@
    🔧 設定エリア：作成するページに合わせてここを書き換えてください
    ========================================================================== */
 // 1. このページのカテゴリキー（総合メニューの CATS 配列の key と一致させます）
-const CAT_KEY = 'small_placeable'; 
+const CAT_KEY = 'large_placeable'; 
 
 // 2. このカテゴリの基本情報
 const CAT_INFO = { name: '大きい設置アイテム', icon: '🏛' };
@@ -565,7 +565,7 @@ function filterAndRender() {
     const isOwned = !!userStates.owned[item.id];
     const isFav = !!userStates.fav[item.id];
     // Google 検索用URLを生成
-    const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + '　Sky')}`;
+    const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + ' Sky')}`;
     return `
       <div class="item-card ${isOwned ? 'is-owned' : ''}" id="card_${item.id}">
         <div class="item-left" onclick="toggleOwned('${item.id}')" style="cursor:pointer;">
@@ -592,10 +592,9 @@ function filterAndRender() {
     `;
   };
 
+  // アイテム一覧をDOMに書き込む
+  listEl.innerHTML = filtered.map(renderItem).join('');
 
-
-
-  
   // スコアの同期
   const total = ITEMS_DATA.length;
   const owned = ITEMS_DATA.filter(item => userStates.owned[item.id]).length;
