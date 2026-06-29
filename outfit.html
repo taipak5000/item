@@ -529,7 +529,7 @@ function filterAndRender() {
     const isOwned = !!userStates.owned[item.id];
     const isFav = !!userStates.fav[item.id];
     // Google 検索用URLを生成
-    const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + ' Sky 星を紡ぐ子どもたち')}`;
+    const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + ' Sky')}`;
     return `
       <div class="item-card ${isOwned ? 'is-owned' : ''}" id="card_${item.id}">
         <div class="item-left" onclick="toggleOwned('${item.id}')" style="cursor:pointer;">
