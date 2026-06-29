@@ -124,6 +124,7 @@
     .badge.free { background: rgba(0,122,255,0.1); color: var(--blue); }
     .badge.dye-o { background: rgba(52,199,89,0.12); color: var(--green); }
     .badge.no-reprint { background: rgba(255,59,48,0.10); color: #FF3B30; }
+    .badge.type-badge { background: rgba(175,82,222,0.10); color: #AF52DE; }
     
     /* Fav Button */
     .fav-btn { font-size: 20px; color: var(--text-3); padding: 4px; transition: transform 0.1s; flex-shrink: 0; }
@@ -220,17 +221,27 @@
         </select>
       </div>
 
-      <!-- イベント名絞り込み ＆ 並び替え -->
+      <!-- イベント名絞り込み ＆ 色絞り込み -->
       <div class="control-row">
         <span class="control-label">その他</span>
         <select class="select-box" id="filterEvent" onchange="filterAndRender()">
           <option value="all">すべてのイベント・登場元</option>
           <!-- JSで動的に追加されます -->
         </select>
+        <select class="select-box" id="filterType" onchange="filterAndRender()">
+          <option value="all">すべてのタイプ</option>
+          <!-- JSで動的に追加されます -->
+        </select>
+      </div>
+
+      <!-- 並び替え -->
+      <div class="control-row">
+        <span class="control-label">並び替え</span>
         <select class="select-box" id="sortOrder" onchange="filterAndRender()">
           <option value="default">並び替え: 標準</option>
           <option value="nameAsc">アイテム名（昇順）</option>
           <option value="event">イベント名順</option>
+          <option value="type">タイプ順</option>
         </select>
       </div>
     </div>
