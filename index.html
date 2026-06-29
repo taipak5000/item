@@ -397,6 +397,28 @@
     .rand-name  { font-size: 14px; font-weight: 600; margin-top: 1px; }
     .rand-empty { font-size: 13px; color: var(--text-3); font-style: italic; margin-top: 1px; }
 
+    /* 排他アイテム（未選択）のロウ */
+    .rand-row-muted { opacity: 0.38; }
+    .rand-row-muted .rand-icon { filter: grayscale(1); }
+
+    /* 排他グループのヒント */
+    .exclusive-hint {
+      background: var(--orange-bg);
+      border-radius: var(--r-sm);
+      padding: 8px 12px;
+      font-size: 11.5px;
+      color: var(--orange-d);
+      margin-bottom: 8px;
+      line-height: 1.5;
+      display: flex; gap: 5px; align-items: flex-start;
+    }
+    .exclusive-divider {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--orange-d); opacity: 0.7;
+      padding: 6px 4px 4px;
+    }
+
     .save-row {
       display: flex; gap: 8px; margin-top: 14px; align-items: center;
     }
@@ -650,6 +672,9 @@ const CATS = [
 const LS     = 'gameItems_';
 const CIRC   = 2 * Math.PI * 38; // ≈ 238.8
 
+// 排他グループ: このうちどれか1つしか同時に装備できない
+const EXCLUSIVE_KEYS = ['portable_item', 'small_placeable', 'large_placeable'];
+
 /* ── Read localStorage ─────────────────── */
 function readCat(key) {
   try {
@@ -778,7 +803,28 @@ function shuffleOutfit() {
   let html = '';
   let hasAny = false;
 
+  // 排他グループから所持アイテムがあるカテゴリを絞り込み、1つだけランダム選択
+  const exclusiveWithItems = EXCLUSIVE_KEYS.filter(key => getOwnedItemsForCat(key).length > 0);
+  const chosenExclusiveKey = exclusiveWithItems.length > 0
+    ? exclusiveWithItems[Math.floor(Math.random() * exclusiveWithItems.length)]
+    : null;
+
   CATS.forEach(cat => {
+    const isExclusive = EXCLUSIVE_KEYS.includes(cat.key);
+
+    // 排他グループのうち選ばれなかったカテゴリはグレーアウト表示
+    if (isExclusive && cat.key !== chosenExclusiveKey) {
+      html += `
+        <div class="rand-row rand-row-muted">
+          <div class="rand-icon">${cat.icon}</div>
+          <div class="rand-info">
+            <div class="rand-cat">${cat.name}</div>
+            <div class="rand-empty">このコーデでは使用しない</div>
+          </div>
+        </div>`;
+      return;
+    }
+
     const owned = getOwnedItemsForCat(cat.key);
     let picked = null;
     if (owned.length > 0) {
@@ -899,12 +945,43 @@ function buildCreateForm() {
       ? `<option value="">（所持アイテムなし）</option>`
       : `<option value="">選択しない</option>` +
         owned.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
-    return `
-      <div class="cat-sel-row">
+
+    // 排他グループの先頭にヒントを挿入
+    const prefix = cat.key === EXCLUSIVE_KEYS[0]
+      ? `<div class="exclusive-hint">⚠️ 以下3カテゴリはどれか1つのみ選択できます</div>`
+      : '';
+
+    return `${prefix}<div class="cat-sel-row">
         <div class="cat-sel-label">${cat.icon} ${cat.name}</div>
-        <select class="cat-sel" id="sel_${cat.key}" ${disabled ? 'disabled' : ''}>${opts}</select>
+        <select class="cat-sel" id="sel_${cat.key}" ${disabled ? 'disabled' : ''}
+          ${EXCLUSIVE_KEYS.includes(cat.key) ? 'data-exclusive="true"' : ''}>${opts}</select>
       </div>`;
   }).join('');
+
+  // 排他グループにイベントリスナーを設定
+  EXCLUSIVE_KEYS.forEach(key => {
+    const sel = document.getElementById('sel_' + key);
+    if (sel && !sel.disabled) {
+      sel.addEventListener('change', handleExclusiveChange);
+    }
+  });
+}
+
+// 排他セレクト変更時: 値が入ったら他の排他セレクトを無効化・クリア
+function handleExclusiveChange(e) {
+  const changedKey = e.target.id.replace('sel_', '');
+  if (!EXCLUSIVE_KEYS.includes(changedKey)) return;
+  const hasValue = e.target.value !== '';
+
+  EXCLUSIVE_KEYS.forEach(key => {
+    if (key === changedKey) return;
+    const sel = document.getElementById('sel_' + key);
+    if (!sel) return;
+    // 所持アイテムなしで元から disabled のものはそのまま
+    if (getOwnedItemsForCat(key).length === 0) return;
+    sel.disabled = hasValue;
+    if (hasValue) sel.value = '';
+  });
 }
 
 function saveCreatedCoord() {
