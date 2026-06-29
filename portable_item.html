@@ -124,6 +124,7 @@
     .badge.free { background: rgba(0,122,255,0.1); color: var(--blue); }
     .badge.dye-o { background: rgba(52,199,89,0.12); color: var(--green); }
     .badge.no-reprint { background: rgba(255,59,48,0.10); color: #FF3B30; }
+    .badge.type-badge { background: rgba(175,82,222,0.10); color: #AF52DE; }
     
     /* Fav Button */
     .fav-btn { font-size: 20px; color: var(--text-3); padding: 4px; transition: transform 0.1s; flex-shrink: 0; }
@@ -220,17 +221,27 @@
         </select>
       </div>
 
-      <!-- イベント名絞り込み ＆ 並び替え -->
+      <!-- イベント名絞り込み ＆ 色絞り込み -->
       <div class="control-row">
         <span class="control-label">その他</span>
         <select class="select-box" id="filterEvent" onchange="filterAndRender()">
           <option value="all">すべてのイベント・登場元</option>
           <!-- JSで動的に追加されます -->
         </select>
+        <select class="select-box" id="filterType" onchange="filterAndRender()">
+          <option value="all">すべてのタイプ</option>
+          <!-- JSで動的に追加されます -->
+        </select>
+      </div>
+
+      <!-- 並び替え -->
+      <div class="control-row">
+        <span class="control-label">並び替え</span>
         <select class="select-box" id="sortOrder" onchange="filterAndRender()">
           <option value="default">並び替え: 標準</option>
           <option value="nameAsc">アイテム名（昇順）</option>
           <option value="event">イベント名順</option>
+          <option value="type">タイプ順</option>
         </select>
       </div>
     </div>
@@ -249,43 +260,18 @@
    🔧 設定エリア：作成するページに合わせてここを書き換えてください
    ========================================================================== */
 // 1. このページのカテゴリキー（総合メニューの CATS 配列の key と一致させます）
-const CAT_KEY = 'portable_item'; 
+const CAT_KEY = 'cape'; 
 
 // 2. このカテゴリの基本情報
-const CAT_INFO = { name: '持ち運びアイテム', icon: '🎹' };
+const CAT_INFO = { name: 'ケープ', icon: '🪽' };
 
 // 3. アイテムのマスターデータ（ここにアイテムをどんどん追加していきます）
 // cost: 'free'(無課金) または 'premium'(課金)
 // dye: true(染色〇) または false(染色✕)
 const ITEMS_DATA = [
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  { id: 'shoes_001', name: 'そっと覗く郵便屋　靴', event: '夢かなう季節', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_002', name: '含み笑いのスカウト　靴', event: '大樹に集う季節', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_003', name: '懇願する幼子　靴', event: '追慕の季節', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_004', name: '夜鳥の語り部　靴', event: '瞬きの季節', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_005', name: '寂れたオアシスの面影　靴', event: '復古の季節', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_006', name: '見捨てられた隠れ家の残響　靴', event: '復古の季節', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_007', name: '忘れ去られた楽園のなごり　靴', event: '復古の季節', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_008', name: '栄光のピアニスト　靴', event: '重なる音色の季節', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_009', name: '自己の確立　靴', event: 'ムーミンの季節', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_010', name: '光に染まる挑戦的な表現者　靴', event: '光に染まる季節', cost: 'free', dye: true, noReprint: false },
-  { id: 'shoes_011', name: '光に染まる飛び跳ねる舞踏家　靴', event: '光に染まる季節', cost: 'free', dye: true, noReprint: false },
-  { id: 'shoes_012', name: '木こりの訴えかける親　靴', event: '青い鳥の季節', cost: 'free', dye: true, noReprint: false },
-  { id: 'shoes_013', name: '手負いの巡回兵　靴', event: 'ふたつの灯火の季節　前編', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_014', name: '渡りの究極　靴', event: '渡りの季節', cost: 'premium', dye: true, noReprint: true },
-  { id: 'shoes_015', name: '月虹ローファー', event: '彩なす日々', cost: 'premium', dye: false, noReprint: false },
-  { id: 'shoes_016', name: '陽光ずんぐりサンダル', event: '陽光の日々', cost: 'premium', dye: false, noReprint: false },
-  { id: 'shoes_017', name: 'いたずらウィッチ・ジャンパーシューズ', event: 'いたずらな日々', cost: 'premium', dye: false, noReprint: false },
-  { id: 'shoes_018', name: 'いたずらゴスブーツ', event: 'いたずらな日々', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_019', name: 'お洒落シルクトゥシューズ', event: 'お洒落な日々', cost: 'free', dye: false, noReprint: false },
-  { id: 'shoes_020', name: '月灯りバニーシューズ', event: '月灯りの日々', cost: 'premium', dye: false, noReprint: false },
-  { id: 'shoes_021', name: '隠者のぬくもりブーツ', event: '聖なる星の日々', cost: 'premium', dye: false, noReprint: false },
-  { id: 'shoes_022', name: '冬編むふわふわレッグウォーマー', event: '聖なる星の日々', cost: 'premium', dye: true, noReprint: false },
-  { id: 'shoes_023', name: '音楽の旅スニーカー', event: 'AURORAアンコール・コンサート', cost: 'premium', dye: false, noReprint: true },
-  { id: 'shoes_024', name: '宝探しキャバリエブーツ', event: '宝探しの日々', cost: 'free', dye: true, noReprint: false },
-  { id: 'shoes_025', name: '海の泡沫ブーツ', event: '自然の日々', cost: 'premium', dye: false, noReprint: false },
-  { id: 'shoes_026', name: 'アニバーサリースリッパ', event: 'Skyアニバーサリー', cost: 'premium', dye: false, noReprint: false },
-  { id: 'shoes_027', name: '大競技会スケートシューズ', event: '凱旋の大競技会', cost: 'premium', dye: true, noReprint: false }
+  { id: 'cape_001', name: 'そっと覗く郵便屋　靴', event: '夢かなう季節', cost: 'free', dye: false, noReprint: false, type: '赤' },
+  { id: 'cape_002', name: '含み笑いのスカウト　靴', event: '大樹に集う季節', cost: 'free', dye: false, noReprint: false, type: '赤' }
 ];
 /* ========================================================================== */
 
@@ -304,6 +290,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadUserData();
   // イベントの絞り込みセレクトボックスを構築
   buildEventFilter();
+  // 色の絞り込みセレクトボックスを構築
+  buildTypeFilter();
   // アイテムリストの表示
   filterAndRender();
   // 総合メニューへ反映させるため、ページ表示のたびにデータを保存
@@ -369,6 +357,18 @@ function buildEventFilter() {
   });
 }
 
+// 重複のない色リストを絞り込みボックスに追加
+function buildTypeFilter() {
+  const types = [...new Set(ITEMS_DATA.map(item => item.type).filter(Boolean))];
+  const select = document.getElementById('filterType');
+  types.forEach(type => {
+    const opt = document.createElement('option');
+    opt.value = type;
+    opt.textContent = type;
+    select.appendChild(opt);
+  });
+}
+
 // 所持チェックの切り替え
 function toggleOwned(id) {
   userStates.owned[id] = !userStates.owned[id];
@@ -398,6 +398,7 @@ function filterAndRender() {
   const fDye = document.getElementById('filterDye').value;
   const fReprint = document.getElementById('filterReprint').value;
   const fEvent = document.getElementById('filterEvent').value;
+  const fType = document.getElementById('filterType').value;
   const sOrder = document.getElementById('sortOrder').value;
   const fName = document.getElementById('searchName').value.trim().toLowerCase();
 
@@ -415,6 +416,7 @@ function filterAndRender() {
     if (fDye === 'dye-x' && item.dye) return false;
     if (fReprint === 'noReprint' && !item.noReprint) return false;
     if (fEvent !== 'all' && item.event !== fEvent) return false;
+    if (fType !== 'all' && item.type !== fType) return false;
 
     return true;
   });
@@ -424,6 +426,8 @@ function filterAndRender() {
     filtered.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
   } else if (sOrder === 'event') {
     filtered.sort((a, b) => a.event.localeCompare(b.event, 'ja'));
+  } else if (sOrder === 'type') {
+    filtered.sort((a, b) => (a.type || '').localeCompare(b.type || '', 'ja'));
   }
 
   // 3. 出力 (Render)
@@ -457,6 +461,7 @@ function filterAndRender() {
               <span class="badge ${item.cost === 'premium' ? 'premium' : 'free'}">${item.cost === 'premium' ? '課金' : '無課金'}</span>
               <span class="badge ${item.dye ? 'dye-o' : ''}">染色 ${item.dye ? '〇' : '✕'}</span>
               ${item.noReprint ? `<span class="badge no-reprint">復刻なし</span>` : ''}
+              ${item.type ? `<span class="badge type-badge">${item.type}</span>` : ''}
             </div>
           </div>
         </div>
@@ -468,21 +473,9 @@ function filterAndRender() {
     `;
   };
 
-  // タイプ別にグループ化（通常の服 → ワンジー の順）
-  const outfitItems = filtered.filter(item => item.type !== 'onesie');
-  const onesieItems = filtered.filter(item => item.type === 'onesie');
 
-  let html = outfitItems.map(renderItem).join('');
 
-  if (onesieItems.length > 0) {
-    // 両グループが混在するときだけ区切り線を表示
-    if (outfitItems.length > 0) {
-      html += `<div class="onesie-divider"><span>🧸 ワンジー</span></div>`;
-    }
-    html += onesieItems.map(renderItem).join('');
-  }
 
-  listEl.innerHTML = html;
   
   // スコアの同期
   const total = ITEMS_DATA.length;
@@ -496,7 +489,7 @@ function filterAndRender() {
   作成・ご意見: <a href="https://x.com/Skyzztai" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none; font-weight:bold;">@Skyzztai</a>
   <span style="color:var(--text-2); font-size:12px; margin-top:4px; display:inline-block;">
     参考データ:
-    <a href="https://sky-children-of-the-light.fandom.com/ja/wiki/%E3%82%B7%E3%83%A5%E3%83%BC%E3%82%BA" target="_blank" rel="noopener noreferrer">シューズ (Sky Wiki 日本語)</a>
+    <a href="https://sky-children-of-the-light.fandom.com/ja/wiki/%E3%82%B1%E3%83%BC%E3%83%97" target="_blank" rel="noopener noreferrer">ケープ (Sky Wiki 日本語)</a>
   </span>
 </footer>
 
