@@ -87,6 +87,7 @@
       background: var(--bg); border: none; padding: 8px 12px; border-radius: var(--r-sm);
       font-size: 13px; color: var(--text); font-weight: 500; outline: none; flex: 1; min-width: 120px;
     }
+    .search-input::placeholder { color: var(--text-3); }
 
     /* ── Item List ────────────────────────────── */
     .sec-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-2); padding: 22px 4px 8px; }
@@ -181,6 +182,11 @@
 
     <!-- ▸ Filter & Sort Control Panel -->
     <div class="control-panel">
+      <!-- 名前検索 -->
+      <div class="control-row">
+        <span class="control-label">名前検索</span>
+        <input type="text" class="select-box search-input" id="searchName" placeholder="🔍 アイテム名で絞り込み..." oninput="filterAndRender()">
+      </div>
       <!-- 絞り込み -->
       <div class="control-row">
         <span class="control-label">絞り込み</span>
@@ -207,6 +213,9 @@
           <option value="all">すべての染色可否</option>
           <option value="dye-o">染色 〇</option>
           <option value="dye-x">染色 ✕</option>
+        </select>
+        <select class="select-box" id="filterReprint" onchange="filterAndRender()">
+          <option value="all">すべての復刻状態</option>
           <option value="noReprint">復刻なし</option>
         </select>
       </div>
@@ -219,7 +228,7 @@
           <!-- JSで動的に追加されます -->
         </select>
         <select class="select-box" id="sortOrder" onchange="filterAndRender()">
-          <option value="default">並び替え: 標準</option>
+          <option value="default">並び替え: 標準（実装順）</option>
           <option value="nameAsc">アイテム名（昇順）</option>
           <option value="event">イベント名順</option>
         </select>
@@ -393,21 +402,24 @@ function filterAndRender() {
   const fFav = document.getElementById('filterFav').value;
   const fCost = document.getElementById('filterCost').value;
   const fDye = document.getElementById('filterDye').value;
+  const fReprint = document.getElementById('filterReprint').value;
   const fEvent = document.getElementById('filterEvent').value;
   const sOrder = document.getElementById('sortOrder').value;
+  const fName = document.getElementById('searchName').value.trim().toLowerCase();
 
   // 1. 絞り込み (Filter)
   let filtered = ITEMS_DATA.filter(item => {
     const isOwned = !!userStates.owned[item.id];
     const isFav = !!userStates.fav[item.id];
 
+    if (fName && !item.name.toLowerCase().includes(fName)) return false;
     if (fStatus === 'owned' && !isOwned) return false;
     if (fStatus === 'notOwned' && isOwned) return false;
     if (fFav === 'fav' && !isFav) return false;
     if (fCost !== 'all' && item.cost !== fCost) return false;
     if (fDye === 'dye-o' && !item.dye) return false;
     if (fDye === 'dye-x' && item.dye) return false;
-    if (fDye === 'noReprint' && !item.noReprint) return false;
+    if (fReprint === 'noReprint' && !item.noReprint) return false;
     if (fEvent !== 'all' && item.event !== fEvent) return false;
 
     return true;
@@ -489,7 +501,7 @@ function filterAndRender() {
   © 2026 アイテム所持管理<br>
   作成・ご意見: <a href="https://x.com/Skyzztai" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none; font-weight:bold;">@Skyzztai</a>
   <span style="color:var(--text-2); font-size:12px; margin-top:4px; display:inline-block;">
-    参考データ:
+      参考データ:
     <a href="https://sky-children-of-the-light.fandom.com/ja/wiki/%E3%83%95%E3%82%A7%E3%82%A4%E3%82%B9%E3%82%A2%E3%82%AF%E3%82%BB%E3%82%B5%E3%83%AA%E3%83%BC" target="_blank" rel="noopener noreferrer">フェイスアクセサリー(Sky Wiki 日本語)</a>
   </span>
 </footer>
