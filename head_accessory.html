@@ -1,1 +1,504 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カテゴリ別アイテムチェック - Sky所持率管理</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Design tokens (総合メニューと完全統一) ──────────────── */
+    :root {
+      --bg:        #F2F2F7;
+      --card:      #FFFFFF;
+      --sep:       rgba(60,60,67,0.12);
+      --orange:    #FF9500;
+      --orange-d:  #FF6200;
+      --orange-bg: rgba(255,149,0,0.10);
+      --blue:      #007AFF;
+      --blue-bg:   rgba(0,122,255,0.08);
+      --green:     #34C759;
+      --green-bg:  rgba(52,199,89,0.10);
+      --text:      #1C1C1E;
+      --text-2:    #8E8E93;
+      --text-3:    #C7C7CC;
+      --r:         16px;
+      --r-sm:      10px;
+    }
 
+    /* ── Reset & Body ─────────────────────────────────── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    a { text-decoration:none; color:inherit; -webkit-tap-highlight-color:transparent; }
+    button { cursor:pointer; border:none; background:none; font-family:inherit; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 60px;
+    }
+
+    /* ── Navigation bar ────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(242,242,247,0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 0.5px solid var(--sep); padding: 14px 20px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+    .nav-back { color: var(--blue); font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+
+    /* ── Layout ───────────────────────── */
+    .app-layout { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+    @media (min-width: 850px) { .app-layout { max-width: 960px; display: flex; gap: 20px; align-items: flex-start; } }
+    .wrap { flex: 1; min-width: 0; }
+
+    /* ── Sidebar (総合メニュー互換) ──────────────── */
+    .sidebar {
+      width: 200px; flex-shrink: 0; position: sticky; top: 58px;
+      background: var(--card); border-radius: var(--r); padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: none; margin-top: 22px;
+    }
+    @media (min-width: 850px) { .sidebar { display: block; } }
+    .sidebar-section-label { font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 8px; text-transform: uppercase; }
+    .sidebar-nav-link {
+      display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: var(--r-sm);
+      color: var(--text); font-size: 13.5px; font-weight: 500; margin-bottom: 2px;
+    }
+    .sidebar-nav-link:hover { background: var(--bg); }
+    .sidebar-nav-link.current-tool { background: var(--orange-bg); color: var(--orange); font-weight: 700; }
+
+    /* ── Category Header Banner ─────────────────── */
+    .cat-header-card {
+      background: var(--card); border-radius: var(--r); padding: 20px; margin-top: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .cat-header-info { display: flex; align-items: center; gap: 12px; }
+    .cat-header-icon { width: 44px; height: 44px; background: var(--bg); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .cat-header-name { font-size: 18px; font-weight: 700; }
+    .cat-header-count { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+    .cat-header-pct { font-size: 24px; font-weight: 800; color: var(--orange); }
+
+    /* ── Filter / Sort Section ─────────────────── */
+    .control-panel {
+      background: var(--card); border-radius: var(--r); padding: 16px; margin-top: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; flex-direction: column; gap: 12px;
+    }
+    .control-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .control-label { font-size: 12px; font-weight: 600; color: var(--text-2); min-width: 60px; }
+    .select-box {
+      background: var(--bg); border: none; padding: 8px 12px; border-radius: var(--r-sm);
+      font-size: 13px; color: var(--text); font-weight: 500; outline: none; flex: 1; min-width: 120px;
+    }
+    .search-input::placeholder { color: var(--text-3); }
+
+    /* ── Item List ────────────────────────────── */
+    .sec-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-2); padding: 22px 4px 8px; }
+    .item-list { display: flex; flex-direction: column; gap: 8px; }
+    
+    /* Item Card */
+    .item-card {
+      background: var(--card); border-radius: var(--r); padding: 14px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      transition: background 0.2s;
+    }
+    .item-card.is-owned { background: rgba(52,199,89,0.03); }
+    .item-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+    
+    /* Checkbox Custom */
+    .check-btn {
+      width: 24px; height: 24px; border: 2px solid var(--text-3); border-radius: 6px;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .item-card.is-owned .check-btn { background: var(--green); border-color: var(--green); }
+    
+    /* Item Details */
+    .item-details { flex: 1; min-width: 0; }
+    .item-name-link {
+      font-size: 15px; font-weight: 600; color: var(--text); display: inline-block;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .item-name-link:hover { color: var(--blue); text-decoration: underline; }
+    .item-meta-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    
+    /* Badges */
+    .badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--bg); color: var(--text-2); }
+    .badge.premium { background: rgba(255,149,0,0.12); color: var(--orange-d); }
+    .badge.free { background: rgba(0,122,255,0.1); color: var(--blue); }
+    .badge.dye-o { background: rgba(52,199,89,0.12); color: var(--green); }
+    .badge.no-reprint { background: rgba(255,59,48,0.10); color: #FF3B30; }
+    
+    /* Fav Button */
+    .fav-btn { font-size: 20px; color: var(--text-3); padding: 4px; transition: transform 0.1s; flex-shrink: 0; }
+    .fav-btn:active { transform: scale(1.2); }
+    .fav-btn.is-fav { color: #FFCC00; text-shadow: 0 0 2px rgba(255,180,0,0.4); }
+
+    /* Empty state */
+    .empty-message { text-align: center; padding: 40px; color: var(--text-2); font-size: 14px; background: var(--card); border-radius: var(--r); }
+
+    /* ── Onesie section divider ───────────────────── */
+    .onesie-divider {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 4px 8px; color: var(--text-2);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+    }
+    .onesie-divider::before, .onesie-divider::after {
+      content: ''; flex: 1; height: 1.5px;
+      background: linear-gradient(90deg, var(--sep), rgba(60,60,67,0.06));
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ▸ Navigation bar -->
+<nav>
+  <a href="index.html" class="nav-back">◀ 総合メニュー</a>
+  <div class="nav-title" id="pageTitle">アイテム所持チェック</div>
+  <div style="width:75px;"></div> <!-- バランス用スペース -->
+</nav>
+
+<!-- ▸ App layout -->
+<div class="app-layout">
+
+  <!-- Sidebar (総合メニューへの簡易リンク) -->
+  <aside class="sidebar">
+    <div class="sidebar-section-label">🗂️ カテゴリメニュー</div>
+    <nav>
+      <a href="index.html" class="sidebar-nav-link">🏠 総合メニューに戻る</a>
+    </nav>
+  </aside>
+
+  <div class="wrap">
+
+    <!-- ▸ Category Status Banner -->
+    <div class="cat-header-card">
+      <div class="cat-header-info">
+        <div class="cat-header-icon" id="catIcon">📦</div>
+        <div>
+          <div class="cat-header-name" id="catName">カテゴリ名</div>
+          <div class="cat-header-count" id="catCount">-- / -- 所持</div>
+        </div>
+      </div>
+      <div class="cat-header-pct" id="catPct">--%</div>
+    </div>
+
+    <!-- ▸ Filter & Sort Control Panel -->
+    <div class="control-panel">
+      <!-- 名前検索 -->
+      <div class="control-row">
+        <span class="control-label">名前検索</span>
+        <input type="text" class="select-box search-input" id="searchName" placeholder="🔍 アイテム名で絞り込み..." oninput="filterAndRender()">
+      </div>
+      <!-- 絞り込み -->
+      <div class="control-row">
+        <span class="control-label">絞り込み</span>
+        <select class="select-box" id="filterStatus" onchange="filterAndRender()">
+          <option value="all">すべての所持状態</option>
+          <option value="owned">所持中のみ</option>
+          <option value="notOwned">未所持のみ</option>
+        </select>
+        <select class="select-box" id="filterFav" onchange="filterAndRender()">
+          <option value="all">すべてのお気に入り</option>
+          <option value="fav">★ お気に入り指定のみ</option>
+        </select>
+      </div>
+      
+      <!-- 条件別絞り込み -->
+      <div class="control-row">
+        <span class="control-label">属性・条件</span>
+        <select class="select-box" id="filterCost" onchange="filterAndRender()">
+          <option value="all">すべての入手方法（課金/無課金）</option>
+          <option value="free">無課金アイテム</option>
+          <option value="premium">課金アイテム</option>
+        </select>
+        <select class="select-box" id="filterDye" onchange="filterAndRender()">
+          <option value="all">すべての染色可否</option>
+          <option value="dye-o">染色 〇</option>
+          <option value="dye-x">染色 ✕</option>
+        </select>
+        <select class="select-box" id="filterReprint" onchange="filterAndRender()">
+          <option value="all">すべての復刻状態</option>
+          <option value="noReprint">復刻なし</option>
+        </select>
+      </div>
+
+      <!-- イベント名絞り込み ＆ 並び替え -->
+      <div class="control-row">
+        <span class="control-label">その他</span>
+        <select class="select-box" id="filterEvent" onchange="filterAndRender()">
+          <option value="all">すべてのイベント・登場元</option>
+          <!-- JSで動的に追加されます -->
+        </select>
+        <select class="select-box" id="sortOrder" onchange="filterAndRender()">
+          <option value="default">並び替え: 標準</option>
+          <option value="nameAsc">アイテム名（昇順）</option>
+          <option value="event">イベント名順</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ▸ Item List Section -->
+    <p class="sec-label" id="listLabel">アイテム一覧</p>
+    <div class="item-list" id="itemList">
+      <!-- JSで動的に生成 -->
+    </div>
+
+  </div><!-- /wrap -->
+</div><!-- /.app-layout -->
+
+<script>
+/* ==========================================================================
+   🔧 設定エリア：作成するページに合わせてここを書き換えてください
+   ========================================================================== */
+// 1. このページのカテゴリキー（総合メニューの CATS 配列の key と一致させます）
+const CAT_KEY = 'head_accessory'; 
+
+// 2. このカテゴリの基本情報
+const CAT_INFO = { name: 'ヘッドアクセサリー', icon: '🎧' };
+
+// 3. アイテムのマスターデータ（ここにアイテムをどんどん追加していきます）
+// cost: 'free'(無課金) または 'premium'(課金)
+// dye: true(染色〇) または false(染色✕)
+const ITEMS_DATA = [
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  { id: 'shoes_001', name: 'そっと覗く郵便屋　靴', event: '夢かなう季節', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_002', name: '含み笑いのスカウト　靴', event: '大樹に集う季節', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_003', name: '懇願する幼子　靴', event: '追慕の季節', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_004', name: '夜鳥の語り部　靴', event: '瞬きの季節', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_005', name: '寂れたオアシスの面影　靴', event: '復古の季節', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_006', name: '見捨てられた隠れ家の残響　靴', event: '復古の季節', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_007', name: '忘れ去られた楽園のなごり　靴', event: '復古の季節', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_008', name: '栄光のピアニスト　靴', event: '重なる音色の季節', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_009', name: '自己の確立　靴', event: 'ムーミンの季節', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_010', name: '光に染まる挑戦的な表現者　靴', event: '光に染まる季節', cost: 'free', dye: true, noReprint: false },
+  { id: 'shoes_011', name: '光に染まる飛び跳ねる舞踏家　靴', event: '光に染まる季節', cost: 'free', dye: true, noReprint: false },
+  { id: 'shoes_012', name: '木こりの訴えかける親　靴', event: '青い鳥の季節', cost: 'free', dye: true, noReprint: false },
+  { id: 'shoes_013', name: '手負いの巡回兵　靴', event: 'ふたつの灯火の季節　前編', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_014', name: '渡りの究極　靴', event: '渡りの季節', cost: 'premium', dye: true, noReprint: true },
+  { id: 'shoes_015', name: '月虹ローファー', event: '彩なす日々', cost: 'premium', dye: false, noReprint: false },
+  { id: 'shoes_016', name: '陽光ずんぐりサンダル', event: '陽光の日々', cost: 'premium', dye: false, noReprint: false },
+  { id: 'shoes_017', name: 'いたずらウィッチ・ジャンパーシューズ', event: 'いたずらな日々', cost: 'premium', dye: false, noReprint: false },
+  { id: 'shoes_018', name: 'いたずらゴスブーツ', event: 'いたずらな日々', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_019', name: 'お洒落シルクトゥシューズ', event: 'お洒落な日々', cost: 'free', dye: false, noReprint: false },
+  { id: 'shoes_020', name: '月灯りバニーシューズ', event: '月灯りの日々', cost: 'premium', dye: false, noReprint: false },
+  { id: 'shoes_021', name: '隠者のぬくもりブーツ', event: '聖なる星の日々', cost: 'premium', dye: false, noReprint: false },
+  { id: 'shoes_022', name: '冬編むふわふわレッグウォーマー', event: '聖なる星の日々', cost: 'premium', dye: true, noReprint: false },
+  { id: 'shoes_023', name: '音楽の旅スニーカー', event: 'AURORAアンコール・コンサート', cost: 'premium', dye: false, noReprint: true },
+  { id: 'shoes_024', name: '宝探しキャバリエブーツ', event: '宝探しの日々', cost: 'free', dye: true, noReprint: false },
+  { id: 'shoes_025', name: '海の泡沫ブーツ', event: '自然の日々', cost: 'premium', dye: false, noReprint: false },
+  { id: 'shoes_026', name: 'アニバーサリースリッパ', event: 'Skyアニバーサリー', cost: 'premium', dye: false, noReprint: false },
+  { id: 'shoes_027', name: '大競技会スケートシューズ', event: '凱旋の大競技会', cost: 'premium', dye: true, noReprint: false }
+];
+/* ========================================================================== */
+
+const LS_KEY = 'gameItems_' + CAT_KEY;
+let userStates = { owned: {}, fav: {} };
+
+// 初期化処理
+document.addEventListener('DOMContentLoaded', () => {
+  // タイトル等UIの書き換え
+  document.title = `${CAT_INFO.name}所持チェック - Sky所持率管理`;
+  document.getElementById('pageTitle').textContent = `🗂️ ${CAT_INFO.name}チェック`;
+  document.getElementById('catName').textContent = CAT_INFO.name;
+  document.getElementById('catIcon').textContent = CAT_INFO.icon;
+
+  // ローカルストレージからユーザーデータを復元
+  loadUserData();
+  // イベントの絞り込みセレクトボックスを構築
+  buildEventFilter();
+  // アイテムリストの表示
+  filterAndRender();
+  // 総合メニューへ反映させるため、ページ表示のたびにデータを保存
+  saveUserData();
+});
+
+// ユーザーデータの読み込み
+function loadUserData() {
+  try {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // 旧バージョン互換性およびデータ構造担保
+      userStates.owned = parsed.itemOwned || {};
+      userStates.fav = parsed.itemFav || {};
+    }
+  } catch (e) {
+    console.error("データ読み込み失敗:", e);
+  }
+}
+
+// ユーザーデータの保存（総合メニューの集計ロジックに対応させる）
+function saveUserData() {
+  // 現実の所持数と総数を計算
+  const total = ITEMS_DATA.length;
+  const owned = ITEMS_DATA.filter(item => userStates.owned[item.id]).length;
+
+  // ランダムコーデ・マイコーデ機能向け: 所持アイテムの名前リストを保存
+  const ownedItems = ITEMS_DATA
+    .filter(item => userStates.owned[item.id])
+    .map(item => ({ id: item.id, name: item.name }));
+
+  const dataToSave = {
+    total: total,
+    owned: owned,
+    itemOwned: userStates.owned, // 状態維持用
+    itemFav: userStates.fav,     // 状態維持用
+    ownedItems: ownedItems        // コーデ機能用
+  };
+
+  localStorage.setItem(LS_KEY, JSON.stringify(dataToSave));
+  
+  // ヘッダーのパーセンテージ表示をリアルタイム更新
+  updateHeaderScore(owned, total);
+}
+
+// ヘッダーのスコア表示更新
+function updateHeaderScore(owned, total) {
+  const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
+  document.getElementById('catCount').textContent = `${owned} / ${total} 所持`;
+  document.getElementById('catPct').textContent = `${pct}%`;
+}
+
+// 重複のないイベントリストを絞り込みボックスに追加
+function buildEventFilter() {
+  const events = [...new Set(ITEMS_DATA.map(item => item.event))];
+  const select = document.getElementById('filterEvent');
+  events.forEach(ev => {
+    const opt = document.createElement('option');
+    opt.value = ev;
+    opt.textContent = ev;
+    select.appendChild(opt);
+  });
+}
+
+// 所持チェックの切り替え
+function toggleOwned(id) {
+  userStates.owned[id] = !userStates.owned[id];
+  saveUserData();
+  
+  // クラスの切り替えだけでスムーズにUIに反映
+  const card = document.getElementById(`card_${id}`);
+  if (card) {
+    card.classList.toggle('is-owned', userStates.owned[id]);
+  }
+}
+
+// お気に入りチェックの切り替え
+function toggleFav(id, btn) {
+  userStates.fav[id] = !userStates.fav[id];
+  saveUserData();
+  
+  btn.classList.toggle('is-fav', userStates.fav[id]);
+  btn.textContent = userStates.fav[id] ? '★' : '☆';
+}
+
+// フィルター・ソートを適用してレンダリング
+function filterAndRender() {
+  const fStatus = document.getElementById('filterStatus').value;
+  const fFav = document.getElementById('filterFav').value;
+  const fCost = document.getElementById('filterCost').value;
+  const fDye = document.getElementById('filterDye').value;
+  const fReprint = document.getElementById('filterReprint').value;
+  const fEvent = document.getElementById('filterEvent').value;
+  const sOrder = document.getElementById('sortOrder').value;
+  const fName = document.getElementById('searchName').value.trim().toLowerCase();
+
+  // 1. 絞り込み (Filter)
+  let filtered = ITEMS_DATA.filter(item => {
+    const isOwned = !!userStates.owned[item.id];
+    const isFav = !!userStates.fav[item.id];
+
+    if (fName && !item.name.toLowerCase().includes(fName)) return false;
+    if (fStatus === 'owned' && !isOwned) return false;
+    if (fStatus === 'notOwned' && isOwned) return false;
+    if (fFav === 'fav' && !isFav) return false;
+    if (fCost !== 'all' && item.cost !== fCost) return false;
+    if (fDye === 'dye-o' && !item.dye) return false;
+    if (fDye === 'dye-x' && item.dye) return false;
+    if (fReprint === 'noReprint' && !item.noReprint) return false;
+    if (fEvent !== 'all' && item.event !== fEvent) return false;
+
+    return true;
+  });
+
+  // 2. 並び替え (Sort)
+  if (sOrder === 'nameAsc') {
+    filtered.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  } else if (sOrder === 'event') {
+    filtered.sort((a, b) => a.event.localeCompare(b.event, 'ja'));
+  }
+
+  // 3. 出力 (Render)
+  const listEl = document.getElementById('itemList');
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="empty-message">該当するアイテムが見つかりません。</div>`;
+    // 全体数は変わらないため初期ヘッダーだけ更新
+    const total = ITEMS_DATA.length;
+    const owned = ITEMS_DATA.filter(item => userStates.owned[item.id]).length;
+    updateHeaderScore(owned, total);
+    return;
+  }
+
+  // アイテム1枚のHTMLを生成するヘルパー
+  const renderItem = (item) => {
+    const isOwned = !!userStates.owned[item.id];
+    const isFav = !!userStates.fav[item.id];
+    // Google 検索用URLを生成
+    const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + ' Sky 星を紡ぐ子どもたち')}`;
+    return `
+      <div class="item-card ${isOwned ? 'is-owned' : ''}" id="card_${item.id}">
+        <div class="item-left" onclick="toggleOwned('${item.id}')" style="cursor:pointer;">
+          <div class="check-btn"></div>
+          <div class="item-details">
+            <!-- アイテム名クリックでWiki検索へジャンプ（バブリングを防ぐためストップ） -->
+            <a href="${wikiUrl}" target="_blank" rel="noopener noreferrer" class="item-name-link" onclick="event.stopPropagation();">
+              ${item.name} 🔗
+            </a>
+            <div class="item-meta-row">
+              <span class="badge">${item.event}</span>
+              <span class="badge ${item.cost === 'premium' ? 'premium' : 'free'}">${item.cost === 'premium' ? '課金' : '無課金'}</span>
+              <span class="badge ${item.dye ? 'dye-o' : ''}">染色 ${item.dye ? '〇' : '✕'}</span>
+              ${item.noReprint ? `<span class="badge no-reprint">復刻なし</span>` : ''}
+            </div>
+          </div>
+        </div>
+        <!-- お気に入りボタン -->
+        <button class="fav-btn ${isFav ? 'is-fav' : ''}" onclick="toggleFav('${item.id}', this)">
+          ${isFav ? '★' : '☆'}
+        </button>
+      </div>
+    `;
+  };
+
+  // タイプ別にグループ化（通常の服 → ワンジー の順）
+  const outfitItems = filtered.filter(item => item.type !== 'onesie');
+  const onesieItems = filtered.filter(item => item.type === 'onesie');
+
+  let html = outfitItems.map(renderItem).join('');
+
+  if (onesieItems.length > 0) {
+    // 両グループが混在するときだけ区切り線を表示
+    if (outfitItems.length > 0) {
+      html += `<div class="onesie-divider"><span>🧸 ワンジー</span></div>`;
+    }
+    html += onesieItems.map(renderItem).join('');
+  }
+
+  listEl.innerHTML = html;
+  
+  // スコアの同期
+  const total = ITEMS_DATA.length;
+  const owned = ITEMS_DATA.filter(item => userStates.owned[item.id]).length;
+  updateHeaderScore(owned, total);
+}
+</script>
+
+<footer style="text-align:center; padding:24px 16px; color:var(--text-2); font-size:13px; border-top:1px solid var(--sep); margin-top:40px; line-height:1.6;">
+  © 2026 アイテム所持管理<br>
+  作成・ご意見: <a href="https://x.com/Skyzztai" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none; font-weight:bold;">@Skyzztai</a>
+  <span style="color:var(--text-2); font-size:12px; margin-top:4px; display:inline-block;">
+    参考データ:
+    <a href="https://sky-children-of-the-light.fandom.com/ja/wiki/%E3%82%B7%E3%83%A5%E3%83%BC%E3%82%BA" target="_blank" rel="noopener noreferrer">シューズ (Sky Wiki 日本語)</a>
+  </span>
+</footer>
+
+</body>
+</html>
