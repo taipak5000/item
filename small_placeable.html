@@ -603,10 +603,9 @@ function filterAndRender() {
     `;
   };
 
+  // アイテム一覧をDOMに書き込む
+  listEl.innerHTML = filtered.map(renderItem).join('');
 
-
-
-  
   // スコアの同期
   const total = ITEMS_DATA.length;
   const owned = ITEMS_DATA.filter(item => userStates.owned[item.id]).length;
