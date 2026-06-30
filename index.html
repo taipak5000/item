@@ -356,6 +356,9 @@
     .feature-icon  { font-size: 26px; }
     .feature-label { font-size: 14px; font-weight: 700; color: var(--text); }
     .feature-desc  { font-size: 11px; color: var(--text-2); line-height: 1.45; }
+    .feature-btn.twitter { background: #000; }
+    .feature-btn.twitter .feature-label { color: #fff; }
+    .feature-btn.twitter .feature-desc  { color: rgba(255,255,255,0.68); }
 
     /* ── Modal ──────────────────────────────────── */
     .modal-overlay {
@@ -513,6 +516,31 @@
     .exp-cat  { font-size: 10.5px; color: var(--text-2); }
     .exp-name { font-size: 13.5px; font-weight: 600; color: var(--text); margin-top: 1px; }
 
+    .exp-hero { text-align: center; padding: 6px 0 18px; }
+    .exp-hero-pct {
+      color: #fff; font-size: 52px; font-weight: 800;
+      letter-spacing: -1px; line-height: 1;
+    }
+    .exp-hero-label {
+      color: rgba(255,255,255,0.85); font-size: 12px;
+      margin-top: 6px; letter-spacing: 0.5px;
+    }
+    .exp-hero-nums { color: #fff; font-size: 13px; margin-top: 10px; opacity: 0.92; }
+
+    .exp-cat-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      background: #fff; border-radius: 18px; padding: 14px;
+    }
+    .exp-cat-cell { background: var(--bg); border-radius: 12px; padding: 10px 6px; text-align: center; }
+    .exp-cat-cell-icon { font-size: 17px; }
+    .exp-cat-cell-pct  { font-size: 13px; font-weight: 700; color: var(--orange); margin-top: 3px; }
+    .exp-cat-cell-pct.high  { color: var(--green); }
+    .exp-cat-cell-pct.empty { color: var(--text-3); }
+    .exp-cat-cell-name {
+      font-size: 8.5px; color: var(--text-2); margin-top: 3px;
+      line-height: 1.3; word-break: break-all;
+    }
+
     /* ── Empty / toast ──────────────────────────── */
     .empty-msg {
       text-align: center; color: var(--text-2); font-size: 13px;
@@ -614,6 +642,21 @@
   <div class="hint">
     <span>💡</span>
     <span>各カテゴリページでアイテムを登録すると、ここに所持率が自動で反映されます</span>
+  </div>
+
+  <!-- ▸ 達成率シェア -->
+  <p class="sec-label">達成率をシェア</p>
+  <div class="feature-row">
+    <button class="feature-btn" onclick="saveOverallAsImage()">
+      <span class="feature-icon">🖼️</span>
+      <span class="feature-label">画像で保存</span>
+      <span class="feature-desc">達成率とカテゴリ別所持率を画像で保存</span>
+    </button>
+    <button class="feature-btn twitter" onclick="shareOverallOnTwitter()">
+      <span class="feature-icon">📤</span>
+      <span class="feature-label">Xでシェア</span>
+      <span class="feature-desc">達成率をXに投稿してみんなに自慢しよう</span>
+    </button>
   </div>
 
   <!-- ▸ コーデ機能 -->
@@ -1116,17 +1159,13 @@ function buildExportCardEl(title, items) {
   return card;
 }
 
-// コーデを画像として書き出し、ダウンロードする
-async function saveCoordAsImage(title, items, filenameBase) {
-  if (!items || Object.keys(items).length === 0) {
-    showToast('コーデが選択されていません');
-    return;
-  }
+// 指定したカード生成関数の出力を画像として書き出し、ダウンロードする（共通処理）
+async function exportElementAsImage(buildCardFn, filenameBase) {
   showToast('画像を生成中…');
   let card = null;
   try {
     await ensureHtml2Canvas();
-    card = buildExportCardEl(title, items);
+    card = buildCardFn();
     const canvas = await html2canvas(card, { backgroundColor: null, scale: 2 });
     const link = document.createElement('a');
     link.download = sanitizeFilename(filenameBase) + '.png';
@@ -1143,6 +1182,15 @@ async function saveCoordAsImage(title, items, filenameBase) {
   }
 }
 
+// コーデを画像として書き出し、ダウンロードする
+function saveCoordAsImage(title, items, filenameBase) {
+  if (!items || Object.keys(items).length === 0) {
+    showToast('コーデが選択されていません');
+    return;
+  }
+  return exportElementAsImage(() => buildExportCardEl(title, items), filenameBase);
+}
+
 // コーデ内容からツイート本文を作成（文末に必ずサイトURLを付与）
 function buildCoordTweetText(label, items) {
   const lines = CATS
@@ -1154,15 +1202,18 @@ function buildCoordTweetText(label, items) {
   return `${label}のコーデ\n\n${lines.join('\n')}\n\n${SITE_URL}`;
 }
 
-// Xの投稿画面（Web Intent）を新規タブで開く
+// Xの投稿画面（Web Intent）を新規タブで開く（共通処理）
+function openTwitterIntent(text) {
+  const intentUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+  window.open(intentUrl, '_blank', 'noopener,noreferrer');
+}
+
 function shareCoordOnTwitterIntent(label, items) {
   if (!items || Object.keys(items).length === 0) {
     showToast('コーデが選択されていません');
     return;
   }
-  const text = buildCoordTweetText(label, items);
-  const intentUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
-  window.open(intentUrl, '_blank', 'noopener,noreferrer');
+  openTwitterIntent(buildCoordTweetText(label, items));
 }
 
 // ── ランダムコーデ: 画像保存・Xシェア ──────────
@@ -1185,6 +1236,73 @@ function shareMyCoordOnTwitter(id) {
   const set = getSavedCoords().find(s => s.id === id);
   if (!set) return;
   return shareCoordOnTwitterIntent(set.name, set.items);
+}
+
+// ── 総合達成率: 画像保存・Xシェア ──────────────
+function getOverallStats() {
+  let own = 0, tot = 0;
+  CATS.forEach(cat => {
+    const d = readCat(cat.key);
+    if (d) { own += d.owned; tot += d.total; }
+  });
+  return { own, tot, p: pct(own, tot) };
+}
+
+// 全体の達成率＋カテゴリ別所持率カード（画面外）を生成
+function buildOverallExportCardEl() {
+  const { own, tot, p } = getOverallStats();
+  const pctTxt = p !== null ? p + '%' : '--%';
+
+  const cells = CATS.map(cat => {
+    const d  = readCat(cat.key);
+    const cp = d ? pct(d.owned, d.total) : null;
+    const high = cp !== null && cp >= 80;
+    const cls  = cp === null ? 'empty' : high ? 'high' : '';
+    const cpTxt = cp !== null ? cp + '%' : '--';
+    return `
+      <div class="exp-cat-cell">
+        <div class="exp-cat-cell-icon">${cat.icon}</div>
+        <div class="exp-cat-cell-pct ${cls}">${cpTxt}</div>
+        <div class="exp-cat-cell-name">${cat.name}</div>
+      </div>`;
+  }).join('');
+
+  const card = document.createElement('div');
+  card.className = 'export-card';
+  card.innerHTML = `
+    <div class="exp-brand">🗂️ Skyドレスアップアイテム所持率管理</div>
+    <div class="exp-hero">
+      <div class="exp-hero-pct">${pctTxt}</div>
+      <div class="exp-hero-label">コレクション達成率</div>
+      <div class="exp-hero-nums">所持中 ${tot > 0 ? own : '--'} ／ 総アイテム数 ${tot > 0 ? tot : '--'}</div>
+    </div>
+    <div class="exp-cat-grid">${cells}</div>
+  `;
+  document.body.appendChild(card);
+  return card;
+}
+
+function saveOverallAsImage() {
+  if (getOverallStats().tot === 0) {
+    showToast('まずはカテゴリページでアイテムを登録してください');
+    return;
+  }
+  return exportElementAsImage(buildOverallExportCardEl, 'コレクション達成率');
+}
+
+// 達成率からツイート本文を作成（文末に必ずサイトURLを付与）
+function buildOverallTweetText() {
+  const { own, tot, p } = getOverallStats();
+  const pctTxt = p !== null ? p + '%' : '--%';
+  return `Skyドレスアップアイテム所持率は${pctTxt}でした！\n（所持中 ${own} ／ 総アイテム数 ${tot}）\nあなたは何%持ってる？✨\n\n${SITE_URL}`;
+}
+
+function shareOverallOnTwitter() {
+  if (getOverallStats().tot === 0) {
+    showToast('まずはカテゴリページでアイテムを登録してください');
+    return;
+  }
+  openTwitterIntent(buildOverallTweetText());
 }
 
 // ── Toast ──────────────────────────────────────
