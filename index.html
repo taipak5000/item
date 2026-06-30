@@ -437,6 +437,7 @@
     .action-btn.primary   { background: var(--blue); color: #fff; }
     .action-btn.secondary { background: var(--bg); color: var(--text); }
     .action-btn.full      { width: 100%; }
+    .action-btn.twitter   { background: #000; color: #fff; }
 
     /* ── My Coord list ──────────────────────────── */
     .coord-card {
@@ -448,7 +449,14 @@
       justify-content: space-between; margin-bottom: 10px;
     }
     .coord-title    { font-size: 15px; font-weight: 700; }
-    .coord-del      { font-size: 18px; color: var(--text-3); padding: 2px 4px; }
+    .coord-actions  { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+    .coord-icon-btn {
+      font-size: 16px; padding: 5px 6px; border-radius: 8px;
+      color: var(--text-2); line-height: 1;
+      transition: background 0.12s ease;
+    }
+    .coord-icon-btn:active { background: var(--sep); }
+    .coord-del      { color: var(--text-3); }
     .coord-rows     { display: flex; flex-direction: column; gap: 5px; }
     .coord-item-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
     .coord-cat      { color: var(--text-2); width: 110px; flex-shrink: 0; font-size: 12px; }
@@ -471,6 +479,39 @@
       font-size: 13px; color: var(--text); font-family: inherit; outline: none;
     }
     .cat-sel:disabled { opacity: 0.4; }
+
+    /* ── Export card（画像保存用・非表示要素） ──── */
+    .export-card {
+      position: fixed; left: -9999px; top: 0;
+      width: 560px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans',
+                   'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, var(--orange-d) 0%, var(--orange) 55%, #FFBB00 100%);
+      padding: 28px;
+      border-radius: 28px;
+      box-sizing: border-box;
+    }
+    .exp-brand {
+      color: #fff; font-size: 12px; font-weight: 600;
+      opacity: 0.85; letter-spacing: 0.3px; margin-bottom: 6px;
+    }
+    .exp-title {
+      color: #fff; font-size: 21px; font-weight: 700; margin-bottom: 18px;
+    }
+    .exp-body { background: #fff; border-radius: 18px; padding: 4px 18px; }
+    .exp-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0; border-bottom: 0.5px solid var(--sep);
+    }
+    .exp-row:last-child { border-bottom: none; }
+    .exp-icon {
+      width: 34px; height: 34px; background: var(--bg);
+      border-radius: 9px; display: flex; align-items: center;
+      justify-content: center; font-size: 17px; flex-shrink: 0;
+    }
+    .exp-info { flex: 1; min-width: 0; }
+    .exp-cat  { font-size: 10.5px; color: var(--text-2); }
+    .exp-name { font-size: 13.5px; font-weight: 600; color: var(--text); margin-top: 1px; }
 
     /* ── Empty / toast ──────────────────────────── */
     .empty-msg {
@@ -612,6 +653,10 @@
     <div class="action-row">
       <button class="action-btn secondary" onclick="shuffleOutfit()">🔀 もう一度</button>
       <button class="action-btn primary"   onclick="toggleSaveRow()">💾 保存する</button>
+    </div>
+    <div class="action-row">
+      <button class="action-btn secondary" onclick="saveRandomAsImage()">🖼️ 画像で保存</button>
+      <button class="action-btn twitter"   onclick="shareRandomOnTwitter()">📤 Xでシェア</button>
     </div>
   </div>
 </div>
@@ -922,7 +967,11 @@ function renderMyCoordList() {
       <div class="coord-card">
         <div class="coord-header">
           <div class="coord-title">👗 ${set.name}</div>
-          <button class="coord-del" onclick="deleteCoord(${set.id})">🗑</button>
+          <div class="coord-actions">
+            <button class="coord-icon-btn" onclick="saveMyCoordAsImage(${set.id})" title="画像で保存">🖼️</button>
+            <button class="coord-icon-btn" onclick="shareMyCoordOnTwitter(${set.id})" title="Xでシェア">📤</button>
+            <button class="coord-icon-btn coord-del" onclick="deleteCoord(${set.id})" title="削除">🗑</button>
+          </div>
         </div>
         <div class="coord-rows">${rows}</div>
       </div>`;
@@ -1007,6 +1056,135 @@ function saveCreatedCoord() {
   document.getElementById('newCoordName').value = '';
   showToast(`「${name}」を保存しました！`);
   showCoordList();
+}
+
+/* ================================================================
+   画像保存・Xシェア機能
+   ================================================================ */
+
+// ⚠️ サイト公開URLが決まったらここを差し替えてください
+const SITE_URL = 'INDEX';
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function sanitizeFilename(str) {
+  return String(str).replace(/[\\/:*?"<>|]/g, '_').trim() || 'coord';
+}
+
+// html2canvasを必要になった時点で読み込む（未読み込みの場合のみ）
+let html2canvasLoading = null;
+function ensureHtml2Canvas() {
+  if (window.html2canvas) return Promise.resolve();
+  if (html2canvasLoading) return html2canvasLoading;
+  html2canvasLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload = () => resolve();
+    s.onerror = () => { html2canvasLoading = null; reject(new Error('html2canvas load failed')); };
+    document.head.appendChild(s);
+  });
+  return html2canvasLoading;
+}
+
+// コーデ内容から画像保存用のカード（画面外）を生成
+function buildExportCardEl(title, items) {
+  const rows = CATS.map(cat => {
+    const item = items[cat.key];
+    if (!item) return '';
+    return `
+      <div class="exp-row">
+        <div class="exp-icon">${cat.icon}</div>
+        <div class="exp-info">
+          <div class="exp-cat">${cat.name}</div>
+          <div class="exp-name">${escapeHtml(item.name)}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const card = document.createElement('div');
+  card.className = 'export-card';
+  card.innerHTML = `
+    <div class="exp-brand">🗂️ Skyドレスアップアイテム所持率管理</div>
+    <div class="exp-title">${escapeHtml(title)}</div>
+    <div class="exp-body">${rows}</div>
+  `;
+  document.body.appendChild(card);
+  return card;
+}
+
+// コーデを画像として書き出し、ダウンロードする
+async function saveCoordAsImage(title, items, filenameBase) {
+  if (!items || Object.keys(items).length === 0) {
+    showToast('コーデが選択されていません');
+    return;
+  }
+  showToast('画像を生成中…');
+  let card = null;
+  try {
+    await ensureHtml2Canvas();
+    card = buildExportCardEl(title, items);
+    const canvas = await html2canvas(card, { backgroundColor: null, scale: 2 });
+    const link = document.createElement('a');
+    link.download = sanitizeFilename(filenameBase) + '.png';
+    link.href = canvas.toDataURL('image/png');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('画像を保存しました！');
+  } catch (err) {
+    console.error(err);
+    showToast('画像の保存に失敗しました');
+  } finally {
+    if (card) card.remove();
+  }
+}
+
+// コーデ内容からツイート本文を作成（文末に必ずサイトURLを付与）
+function buildCoordTweetText(label, items) {
+  const lines = CATS
+    .map(cat => {
+      const item = items[cat.key];
+      return item ? `${cat.icon} ${item.name}` : null;
+    })
+    .filter(Boolean);
+  return `${label}のコーデ\n\n${lines.join('\n')}\n\n${SITE_URL}`;
+}
+
+// Xの投稿画面（Web Intent）を新規タブで開く
+function shareCoordOnTwitterIntent(label, items) {
+  if (!items || Object.keys(items).length === 0) {
+    showToast('コーデが選択されていません');
+    return;
+  }
+  const text = buildCoordTweetText(label, items);
+  const intentUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+  window.open(intentUrl, '_blank', 'noopener,noreferrer');
+}
+
+// ── ランダムコーデ: 画像保存・Xシェア ──────────
+function saveRandomAsImage() {
+  return saveCoordAsImage('🎲 ランダムコーデ', currentRandom, 'random-coord');
+}
+
+function shareRandomOnTwitter() {
+  return shareCoordOnTwitterIntent('ランダムコーデ', currentRandom);
+}
+
+// ── マイコーデ: 画像保存・Xシェア ──────────────
+function saveMyCoordAsImage(id) {
+  const set = getSavedCoords().find(s => s.id === id);
+  if (!set) return;
+  return saveCoordAsImage(`👗 ${set.name}`, set.items, set.name);
+}
+
+function shareMyCoordOnTwitter(id) {
+  const set = getSavedCoords().find(s => s.id === id);
+  if (!set) return;
+  return shareCoordOnTwitterIntent(set.name, set.items);
 }
 
 // ── Toast ──────────────────────────────────────
