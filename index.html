@@ -404,6 +404,29 @@
     .rand-row-muted { opacity: 0.38; }
     .rand-row-muted .rand-icon { filter: grayscale(1); }
 
+    /* ❤️ お気に入りボタン（各ランダム結果行） */
+    .rand-fav-btn {
+      font-size: 20px; line-height: 1;
+      padding: 5px 4px; flex-shrink: 0;
+      color: var(--text-3);
+      transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .rand-fav-btn.fav-on { color: #FF3B30; }
+    .rand-fav-btn:active { transform: scale(1.35); }
+
+    /* ⭐ お気に入りのみモード: バナー + ボタン active 状態 */
+    .fav-mode-bar {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--orange-bg); border-radius: var(--r-sm);
+      padding: 7px 12px; margin-bottom: 6px;
+      font-size: 12px; color: var(--orange-d); font-weight: 600;
+    }
+    .action-btn.fav-active {
+      background: var(--orange-bg);
+      color: var(--orange-d);
+      outline: 1.5px solid var(--orange);
+    }
+
     /* 排他グループのヒント */
     .exclusive-hint {
       background: var(--orange-bg);
@@ -695,7 +718,10 @@
 
     <div class="action-row">
       <button class="action-btn secondary" onclick="shuffleOutfit()">🔀 もう一度</button>
-      <button class="action-btn primary"   onclick="toggleSaveRow()">💾 保存する</button>
+      <button class="action-btn secondary" id="favOnlyBtn" onclick="toggleFavOnlyMode()">⭐ お気に入りのみ</button>
+    </div>
+    <div class="action-row">
+      <button class="action-btn primary full" onclick="toggleSaveRow()">💾 保存する</button>
     </div>
     <div class="action-row">
       <button class="action-btn secondary" onclick="saveRandomAsImage()">🖼️ 画像で保存</button>
@@ -877,9 +903,67 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 
 // ── ランダムコーデ ────────────────────────────
 let currentRandom = {};
+let favOnlyMode   = false;
+
+/* ── お気に入り管理 ─────────────────────────────
+   localStorage キー: randFav_<catKey> = JSON array of item IDs
+ ─────────────────────────────────────────────── */
+function getFavIds(catKey) {
+  try { return JSON.parse(localStorage.getItem('randFav_' + catKey)) || []; }
+  catch { return []; }
+}
+
+function isFav(catKey, itemId) {
+  return getFavIds(catKey).includes(String(itemId));
+}
+
+function toggleFavorite(catKey, itemId) {
+  const id   = String(itemId);
+  const favs = getFavIds(catKey);
+  const idx  = favs.indexOf(id);
+  if (idx === -1) favs.push(id); else favs.splice(idx, 1);
+  localStorage.setItem('randFav_' + catKey, JSON.stringify(favs));
+
+  // DOM の❤️ボタンをその場で更新
+  const btn = document.querySelector(`.rand-fav-btn[data-cat="${catKey}"][data-id="${id}"]`);
+  if (btn) {
+    const on = favs.includes(id);
+    btn.classList.toggle('fav-on', on);
+    btn.textContent = on ? '❤️' : '🤍';
+  }
+}
+
+function handleFavClick(btn) {
+  toggleFavorite(btn.dataset.cat, btn.dataset.id);
+}
+
+// お気に入りのみモード切替
+function toggleFavOnlyMode() {
+  favOnlyMode = !favOnlyMode;
+  updateFavOnlyBtn();
+  shuffleOutfit();
+}
+
+function updateFavOnlyBtn() {
+  const btn = document.getElementById('favOnlyBtn');
+  if (!btn) return;
+  btn.classList.toggle('fav-active', favOnlyMode);
+  btn.textContent = favOnlyMode ? '⭐ お気に入り中' : '⭐ お気に入りのみ';
+}
+
+// お気に入りがあればそこから、なければ全所持アイテムから返す
+function getPickPool(catKey) {
+  const owned  = getOwnedItemsForCat(catKey);
+  if (!favOnlyMode) return owned;
+  const favIds = getFavIds(catKey);
+  const favs   = owned.filter(i => favIds.includes(String(i.id)));
+  return favs.length > 0 ? favs : owned; // お気に入りなし → 全所持にフォールバック
+}
 
 function openRandomCoord() {
   currentRandom = {};
+  favOnlyMode = false;
+  updateFavOnlyBtn();
   hideSaveRow();
   openModal('randomModal');
   shuffleOutfit();
@@ -891,16 +975,26 @@ function shuffleOutfit() {
   let html = '';
   let hasAny = false;
 
-  // 排他グループから所持アイテムがあるカテゴリを絞り込み、1つだけランダム選択
-  const exclusiveWithItems = EXCLUSIVE_KEYS.filter(key => getOwnedItemsForCat(key).length > 0);
+  // お気に入りのみモード時: 排他グループはお気に入りがあるカテゴリを優先
+  const exclusiveWithItems = EXCLUSIVE_KEYS.filter(key => getPickPool(key).length > 0);
   const chosenExclusiveKey = exclusiveWithItems.length > 0
     ? exclusiveWithItems[Math.floor(Math.random() * exclusiveWithItems.length)]
     : null;
 
+  // お気に入りが1件もない場合の警告フラグ
+  let anyFavExists = !favOnlyMode; // 通常モードなら常に true
+  if (favOnlyMode) {
+    anyFavExists = CATS.some(c => getFavIds(c.key).length > 0);
+    if (!anyFavExists) showToast('⭐ お気に入りが未設定です。全アイテムからランダムします');
+  }
+
+  if (favOnlyMode && anyFavExists) {
+    html += `<div class="fav-mode-bar">⭐ お気に入りアイテムのみでランダム中</div>`;
+  }
+
   CATS.forEach(cat => {
     const isExclusive = EXCLUSIVE_KEYS.includes(cat.key);
 
-    // 排他グループのうち選ばれなかったカテゴリはグレーアウト表示
     if (isExclusive && cat.key !== chosenExclusiveKey) {
       html += `
         <div class="rand-row rand-row-muted">
@@ -913,13 +1007,23 @@ function shuffleOutfit() {
       return;
     }
 
-    const owned = getOwnedItemsForCat(cat.key);
+    const pool = getPickPool(cat.key);
     let picked = null;
-    if (owned.length > 0) {
-      picked = owned[Math.floor(Math.random() * owned.length)];
+    if (pool.length > 0) {
+      picked = pool[Math.floor(Math.random() * pool.length)];
       currentRandom[cat.key] = picked;
       hasAny = true;
     }
+
+    const favOn  = picked && isFav(cat.key, picked.id);
+    const favBtn = picked
+      ? `<button class="rand-fav-btn ${favOn ? 'fav-on' : ''}"
+           data-cat="${cat.key}" data-id="${String(picked.id).replace(/"/g, '&quot;')}"
+           onclick="handleFavClick(this)" title="お気に入り登録">
+           ${favOn ? '❤️' : '🤍'}
+         </button>`
+      : '';
+
     html += `
       <div class="rand-row">
         <div class="rand-icon">${cat.icon}</div>
@@ -929,6 +1033,7 @@ function shuffleOutfit() {
             ? `<div class="rand-name">${picked.name}</div>`
             : `<div class="rand-empty">所持アイテムなし</div>`}
         </div>
+        ${favBtn}
       </div>`;
   });
 
@@ -1106,7 +1211,7 @@ function saveCreatedCoord() {
    ================================================================ */
 
 // ⚠️ サイト公開URLが決まったらここを差し替えてください
-const SITE_URL = 'https://taipak5000.github.io/item/';
+const SITE_URL = 'INDEX';
 
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({
