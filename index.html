@@ -70,6 +70,23 @@
       padding: 22px 4px 8px;
     }
 
+    /* ── はじめての方へ（紹介文カード） ─────────── */
+    .welcome-card {
+      background: var(--card);
+      border-radius: var(--r);
+      padding: 18px 18px 16px;
+      margin-top: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0.5px 1px rgba(0,0,0,0.04);
+    }
+    .welcome-title {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 14px; font-weight: 700; color: var(--text);
+      margin-bottom: 8px;
+    }
+    .welcome-text {
+      font-size: 13px; line-height: 1.75; color: var(--text-2);
+    }
+
     /* ── Banner card (overall rate) ────────────── */
     .banner {
       background: linear-gradient(135deg, var(--orange-d) 0%, var(--orange) 55%, #FFBB00 100%);
@@ -635,6 +652,15 @@
   </aside>
 
   <div class="wrap">
+
+  <!-- ▸ はじめての方へ（紹介文）
+       👇 下の .welcome-text の文章を書き換えてください。今は例文が入っています。 -->
+  <div class="welcome-card">
+    <div class="welcome-title">🔰 はじめての方へ</div>
+    <div class="welcome-text" id="welcomeText">
+      はじめまして！このツールでは、Skyのドレスアップアイテムの所持状況をカテゴリ別にチェックできます。🎲ランダムコーデ機能で新しい組み合わせを発見したり、👗マイコーデでお気に入りを保存したりできるほか、達成率を画像にしてXでシェアすることも可能です。まずは気になるカテゴリからアイテムを登録してみてください！
+    </div>
+  </div>
 
   <!-- ▸ Overall rate banner -->
   <p class="sec-label">全体の達成率</p>
