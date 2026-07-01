@@ -579,6 +579,19 @@
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+    /* ── 画像プレビュー（保存）モーダル ─────────── */
+    .preview-img {
+      width: 100%; display: block;
+      margin-top: 12px;
+      border-radius: var(--r-sm);
+      background: var(--bg);
+      -webkit-touch-callout: default; /* 長押しで「画像を保存」メニューを出すため */
+    }
+    a.action-btn {
+      display: flex; align-items: center; justify-content: center;
+      text-decoration: none;
+    }
+
     /* ── Responsive ────────────────────────────── */
     @media (min-width: 600px) {
       .cat-grid { grid-template-columns: repeat(3, 1fr); }
@@ -763,6 +776,27 @@
       <button class="action-btn primary full" style="margin-top:12px;" onclick="saveCreatedCoord()">このコーデを保存</button>
     </div>
 
+  </div>
+</div>
+
+<!-- ▸ Modal: 画像プレビュー（保存用） -->
+<div class="modal-overlay" id="imagePreviewModal" onclick="if(event.target===this)closeModal('imagePreviewModal')">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title">🖼️ 画像を保存</span>
+      <button class="modal-close" onclick="closeModal('imagePreviewModal')">✕</button>
+    </div>
+
+    <div class="hint" style="margin-top:0;">
+      <span>👆</span>
+      <span>画像を長押し（PCの場合は右クリック）して「画像を保存」を選んでください</span>
+    </div>
+
+    <img id="previewImg" class="preview-img" src="" alt="保存用の画像" />
+
+    <div class="action-row">
+      <a id="previewDownloadLink" class="action-btn primary full" href="" download="">⬇️ ダウンロード</a>
+    </div>
   </div>
 </div>
 
@@ -1264,7 +1298,9 @@ function buildExportCardEl(title, items) {
   return card;
 }
 
-// 指定したカード生成関数の出力を画像として書き出し、ダウンロードする（共通処理）
+// 指定したカード生成関数の出力を画像として書き出し、保存する（共通処理）
+// 1) Web Share API（ファイル共有）に対応していれば、共有シートから直接「画像を保存」できるようにする
+// 2) 非対応・失敗時は、画像を画面に表示して長押し（PCは右クリック）またはダウンロードボタンで保存してもらう
 async function exportElementAsImage(buildCardFn, filenameBase) {
   showToast('画像を生成中…');
   let card = null;
@@ -1272,19 +1308,51 @@ async function exportElementAsImage(buildCardFn, filenameBase) {
     await ensureHtml2Canvas();
     card = buildCardFn();
     const canvas = await html2canvas(card, { backgroundColor: null, scale: 2 });
-    const link = document.createElement('a');
-    link.download = sanitizeFilename(filenameBase) + '.png';
-    link.href = canvas.toDataURL('image/png');
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    showToast('画像を保存しました！');
+    const filename = sanitizeFilename(filenameBase) + '.png';
+
+    const shareResult = await tryShareImage(canvas, filename);
+    if (shareResult === 'success') {
+      showToast('画像を保存しました！');
+      return;
+    }
+    if (shareResult === 'cancelled') {
+      return; // 共有シートをユーザー自身がキャンセルした場合は何もしない
+    }
+
+    // 共有に非対応 or 失敗 → 長押し保存用に画像を表示
+    openImagePreview(canvas.toDataURL('image/png'), filename);
   } catch (err) {
     console.error(err);
     showToast('画像の保存に失敗しました');
   } finally {
     if (card) card.remove();
   }
+}
+
+// Web Share API（ファイル共有）で画像の保存を試みる
+// 戻り値: 'success'（共有完了） / 'cancelled'（ユーザーがキャンセル） / 'unsupported'（非対応 or 失敗）
+async function tryShareImage(canvas, filename) {
+  if (!navigator.share || !navigator.canShare) return 'unsupported';
+  try {
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) return 'unsupported';
+    const file = new File([blob], filename, { type: 'image/png' });
+    if (!navigator.canShare({ files: [file] })) return 'unsupported';
+    await navigator.share({ files: [file] });
+    return 'success';
+  } catch (err) {
+    if (err && err.name === 'AbortError') return 'cancelled';
+    return 'unsupported';
+  }
+}
+
+// 画像プレビューモーダルを開く（長押し/右クリック、またはダウンロードボタンで保存）
+function openImagePreview(dataUrl, filename) {
+  document.getElementById('previewImg').src = dataUrl;
+  const link = document.getElementById('previewDownloadLink');
+  link.href = dataUrl;
+  link.download = filename;
+  openModal('imagePreviewModal');
 }
 
 // コーデを画像として書き出し、ダウンロードする
