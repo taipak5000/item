@@ -618,6 +618,30 @@
       .banner-nums { gap: 16px; }
       .bnum-val { font-size: 22px; }
     }
+    /* ── アイコン画像（絵文字→画像化） ─────────── */
+    .cat-icon img,
+    .rand-icon img,
+    .exp-icon img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      border-radius: inherit;
+      display: block;
+    }
+    .exp-cat-cell-icon img {
+      width: 28px; height: 28px;
+      object-fit: cover;
+      border-radius: 8px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .coord-cat img,
+    .cat-sel-label img {
+      width: 16px; height: 16px;
+      object-fit: cover;
+      border-radius: 4px;
+      vertical-align: -3px;
+      margin-right: 1px;
+    }
   </style>
 </head>
 <body>
@@ -831,19 +855,27 @@
 <script>
 /* ── Category list ──────────────────────── */
 const CATS = [
-  { key:'outfit',          name:'アウトフィット',         file:'outfit.html',          icon:'🧥' },
-  { key:'shoes',           name:'シューズ',               file:'shoes.html',           icon:'👟' },
-  { key:'mask',            name:'マスク',                 file:'mask.html',            icon:'🎭' },
-  { key:'face_accessory',  name:'フェイスアクセサリー',   file:'face_accessory.html',  icon:'💎' },
-  { key:'necklace',        name:'ネックレス',             file:'necklace.html',        icon:'📿' },
-  { key:'hairstyle',       name:'ヘアスタイル',           file:'hairstyle.html',       icon:'💇' },
-  { key:'hair_accessory',  name:'ヘアアクセサリー',       file:'hair_accessory.html',  icon:'👒' },
-  { key:'head_accessory',  name:'ヘッドアクセサリー',     file:'head_accessory.html',  icon:'🎧' },
-  { key:'cape',            name:'ケープ',                 file:'cape.html',            icon:'🪽‪' },
-  { key:'portable_item',   name:'持ち運べるアイテム',     file:'portable_item.html',   icon:'🎹' },
-  { key:'small_placeable', name:'小さい設置アイテム',     file:'small_placeable.html', icon:'🏮' },
-  { key:'large_placeable', name:'大きい設置アイテム',     file:'large_placeable.html', icon:'🏛️' },
+  { key:'outfit',          name:'アウトフィット',         file:'outfit.html',          icon:'🧥', img:'icons/outfit.png' },
+  { key:'shoes',           name:'シューズ',               file:'shoes.html',           icon:'👟', img:'icons/shoes.png' },
+  { key:'mask',            name:'マスク',                 file:'mask.html',            icon:'🎭', img:'icons/mask.png' },
+  { key:'face_accessory',  name:'フェイスアクセサリー',   file:'face_accessory.html',  icon:'💎', img:'icons/face_accessory.png' },
+  { key:'necklace',        name:'ネックレス',             file:'necklace.html',        icon:'📿', img:'icons/necklace.png' },
+  { key:'hairstyle',       name:'ヘアスタイル',           file:'hairstyle.html',       icon:'💇', img:'icons/hairstyle.png' },
+  { key:'hair_accessory',  name:'ヘアアクセサリー',       file:'hair_accessory.html',  icon:'👒', img:'icons/hair_accessory.png' },
+  { key:'head_accessory',  name:'ヘッドアクセサリー',     file:'head_accessory.html',  icon:'🎧', img:'icons/head_accessory.png' },
+  { key:'cape',            name:'ケープ',                 file:'cape.html',            icon:'🪽‪', img:'icons/cape.png' },
+  { key:'portable_item',   name:'持ち運べるアイテム',     file:'portable_item.html',   icon:'🎹', img:'icons/portable_item.png' },
+  { key:'small_placeable', name:'小さい設置アイテム',     file:'small_placeable.html', icon:'🏮', img:'icons/small_placeable.png' },
+  { key:'large_placeable', name:'大きい設置アイテム',     file:'large_placeable.html', icon:'🏛️', img:'icons/large_placeable.png' },
 ];
+
+// 絵文字アイコン or 画像アイコンを出し分けるヘルパー
+// img が指定されているカテゴリは画像、まだ画像がないカテゴリ（例: 未対応分）は絵文字のまま表示する
+function catIconHtml(cat) {
+  return cat.img
+    ? `<img src="${cat.img}" alt="${escapeHtml(cat.name)}" loading="lazy">`
+    : cat.icon;
+}
 
 const LS     = 'gameItems_';
 const CIRC   = 2 * Math.PI * 38; // ≈ 238.8
@@ -876,7 +908,7 @@ function cardHTML(cat, data) {
     <a class="cat-card" href="${cat.file}">
       <div class="cat-top">
         <div class="cat-icon-wrap">
-          <div class="cat-icon">${cat.icon}</div>
+          <div class="cat-icon">${catIconHtml(cat)}</div>
           <div class="cat-name">${cat.name}</div>
         </div>
         <span class="cat-pct ${cls}">${pTxt}</span>
@@ -933,6 +965,15 @@ function refreshData() {
 }
 
 /* ── Init ──────────────────────────────── */
+// アイコン画像を先読みしておく（画像保存時にhtml2canvasが未読み込みで
+// アイコンが空白になるのを防ぐため）
+function preloadCatIcons() {
+  CATS.forEach(cat => {
+    if (cat.img) new Image().src = cat.img;
+  });
+}
+preloadCatIcons();
+
 document.addEventListener('DOMContentLoaded', loadAndRender);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) loadAndRender();
@@ -1067,7 +1108,7 @@ function shuffleOutfit() {
     if (isExclusive && cat.key !== chosenExclusiveKey) {
       html += `
         <div class="rand-row rand-row-muted">
-          <div class="rand-icon">${cat.icon}</div>
+          <div class="rand-icon">${catIconHtml(cat)}</div>
           <div class="rand-info">
             <div class="rand-cat">${cat.name}</div>
             <div class="rand-empty">このコーデでは使用しない</div>
@@ -1095,7 +1136,7 @@ function shuffleOutfit() {
 
     html += `
       <div class="rand-row">
-        <div class="rand-icon">${cat.icon}</div>
+        <div class="rand-icon">${catIconHtml(cat)}</div>
         <div class="rand-info">
           <div class="rand-cat">${cat.name}</div>
           ${picked
@@ -1175,7 +1216,7 @@ function renderMyCoordList() {
       const cat = CATS.find(c => c.key === catKey);
       if (!cat || !item) return '';
       return `<div class="coord-item-row">
-        <span class="coord-cat">${cat.icon} ${cat.name}</span>
+        <span class="coord-cat">${catIconHtml(cat)} ${cat.name}</span>
         <span class="coord-iname">${item.name}</span>
       </div>`;
     }).join('');
@@ -1218,7 +1259,7 @@ function buildCreateForm() {
       : '';
 
     return `${prefix}<div class="cat-sel-row">
-        <div class="cat-sel-label">${cat.icon} ${cat.name}</div>
+        <div class="cat-sel-label">${catIconHtml(cat)} ${cat.name}</div>
         <select class="cat-sel" id="sel_${cat.key}" ${disabled ? 'disabled' : ''}
           ${EXCLUSIVE_KEYS.includes(cat.key) ? 'data-exclusive="true"' : ''}>${opts}</select>
       </div>`;
@@ -1314,7 +1355,7 @@ function buildExportCardEl(title, items) {
     if (!item) return '';
     return `
       <div class="exp-row">
-        <div class="exp-icon">${cat.icon}</div>
+        <div class="exp-icon">${catIconHtml(cat)}</div>
         <div class="exp-info">
           <div class="exp-cat">${cat.name}</div>
           <div class="exp-name">${escapeHtml(item.name)}</div>
@@ -1469,7 +1510,7 @@ function buildOverallExportCardEl() {
     const cpTxt = cp !== null ? cp + '%' : '--';
     return `
       <div class="exp-cat-cell">
-        <div class="exp-cat-cell-icon">${cat.icon}</div>
+        <div class="exp-cat-cell-icon">${catIconHtml(cat)}</div>
         <div class="exp-cat-cell-pct ${cls}">${cpTxt}</div>
         <div class="exp-cat-cell-name">${cat.name}</div>
       </div>`;
