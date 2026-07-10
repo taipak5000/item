@@ -877,6 +877,31 @@ function catIconHtml(cat) {
     : cat.icon;
 }
 
+// 選択中アイテム自体の画像を出すヘルパー（ランダムコーデ等で使用）
+// 各カテゴリページと同じ命名規則 images/<catKey>/<itemId>.png を前提に画像パスを組み立てる
+// 画像が未配置・読み込み失敗の場合は catIconHtml() のカテゴリ汎用アイコンに自動フォールバックする
+function itemIconHtml(cat, item) {
+  if (!item) return catIconHtml(cat);
+  const src = `images/${cat.key}/${item.id}.png`;
+  return `<img src="${src}" alt="${escapeHtml(item.name)}" loading="lazy"
+            onerror="handleItemIconError(this, '${cat.key}')">`;
+}
+
+// アイテム画像の読み込みに失敗した時、カテゴリの汎用アイコン（画像 or 絵文字）に差し替える
+function handleItemIconError(imgEl, catKey) {
+  const cat = CATS.find(c => c.key === catKey);
+  imgEl.outerHTML = cat ? catIconHtml(cat) : '';
+}
+
+// 直近でランダム選出されたアイテムの画像を先読みしておく
+// （保存/シェア用カードを生成する瞬間に画像が未読み込みで空白になるのを防ぐため）
+function preloadItemIcons(items) {
+  Object.entries(items).forEach(([catKey, item]) => {
+    if (!item) return;
+    new Image().src = `images/${catKey}/${item.id}.png`;
+  });
+}
+
 const LS     = 'gameItems_';
 const CIRC   = 2 * Math.PI * 38; // ≈ 238.8
 
@@ -1136,7 +1161,7 @@ function shuffleOutfit() {
 
     html += `
       <div class="rand-row">
-        <div class="rand-icon">${catIconHtml(cat)}</div>
+        <div class="rand-icon">${itemIconHtml(cat, picked)}</div>
         <div class="rand-info">
           <div class="rand-cat">${cat.name}</div>
           ${picked
@@ -1150,6 +1175,7 @@ function shuffleOutfit() {
   if (!hasAny) {
     html = `<div class="empty-msg">各カテゴリページで所持チェックをすると<br>ここにランダムコーデが表示されます。</div>`;
   }
+  preloadItemIcons(currentRandom);
   el.innerHTML = html;
   hideSaveRow();
 }
@@ -1355,7 +1381,7 @@ function buildExportCardEl(title, items) {
     if (!item) return '';
     return `
       <div class="exp-row">
-        <div class="exp-icon">${catIconHtml(cat)}</div>
+        <div class="exp-icon">${itemIconHtml(cat, item)}</div>
         <div class="exp-info">
           <div class="exp-cat">${cat.name}</div>
           <div class="exp-name">${escapeHtml(item.name)}</div>
