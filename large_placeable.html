@@ -90,26 +90,115 @@
     }
     .search-input::placeholder { color: var(--text-3); }
 
-    /* ── Item List ────────────────────────────── */
-    .sec-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-2); padding: 22px 4px 8px; }
+    /* ── 表示切替（グリッド／リスト） ───────────────── */
+    .list-header-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 22px 4px 8px;
+    }
+    .sec-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-2); }
+    .view-toggle { display: flex; background: var(--bg); border-radius: 999px; padding: 3px; gap: 2px; flex-shrink: 0; }
+    .view-toggle-btn {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 12px; font-weight: 600; color: var(--text-2);
+      padding: 7px 12px; border-radius: 999px; transition: background 0.15s, color 0.15s;
+    }
+    .view-toggle-btn.active { background: var(--card); color: var(--text); font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+
+    /* ── Item Grid（画像タイル形式） ───────────────── */
+    .item-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+      gap: 10px; align-items: start;
+    }
+    .item-tile { display: flex; flex-direction: column; gap: 5px; }
+
+    /* タイル本体（正方形の画像エリア／タップで所持トグル） */
+    .item-tile-frame {
+      position: relative; aspect-ratio: 1 / 1; overflow: hidden;
+      background: var(--card); border-radius: var(--r-sm);
+      border: 2px solid transparent; box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      cursor: pointer; transition: border-color 0.15s, transform 0.1s;
+    }
+    .item-tile-frame:active { transform: scale(0.95); }
+    .item-tile-frame.is-owned { border-color: var(--green); }
+
+    /* 画像（未配置の間は仮アイコンにフォールバック） */
+    .item-tile-img-wrap {
+      position: absolute; inset: 0; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg); filter: grayscale(1) opacity(0.4); transition: filter 0.15s;
+    }
+    .item-tile-frame.is-owned .item-tile-img-wrap { filter: none; }
+    .item-tile-img-wrap img { width: 100%; height: 100%; object-fit: contain; padding: 14%; display: block; }
+    .item-tile-img-wrap.img-fallback img { display: none; }
+    .item-tile-fallback { display: none; font-size: 26px; }
+    .item-tile-img-wrap.img-fallback .item-tile-fallback { display: block; }
+
+    /* 四隅のステータス表示：左上=課金 / 右上=お気に入り / 左下=復刻なし / 右下=所持済み */
+    .tile-cost-dot {
+      position: absolute; top: 5px; left: 5px; z-index: 2;
+      width: 9px; height: 9px; border-radius: 50%; background: var(--orange);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.85);
+    }
+    .tile-nr-badge {
+      position: absolute; bottom: 5px; left: 5px; z-index: 2;
+      font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.2px;
+      background: rgba(255,59,48,0.9); padding: 1px 4px; border-radius: 4px;
+    }
+    .tile-fav-btn {
+      position: absolute; top: 3px; right: 3px; z-index: 2;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(255,255,255,0.9); box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; color: var(--text-3); transition: transform 0.1s;
+    }
+    .tile-fav-btn:active { transform: scale(1.15); }
+    .tile-fav-btn.is-fav { color: #FF9500; }
+    .tile-owned-check {
+      position: absolute; bottom: 4px; right: 4px; z-index: 2;
+      width: 19px; height: 19px; border-radius: 50%; background: var(--green); color: #fff;
+      font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(0.4); transition: all 0.15s;
+    }
+    .item-tile-frame.is-owned .tile-owned-check { opacity: 1; transform: scale(1); }
+
+    /* アイテム名（タイル下のキャプション兼Wikiリンク） */
+    .item-tile-name {
+      font-size: 10.5px; line-height: 1.3; text-align: center; color: var(--text-2);
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; padding: 0 1px;
+    }
+    .item-tile-name:hover { color: var(--blue); }
+
+    /* ── Item List（画像サムネイル付きリスト形式） ───────────────── */
     .item-list { display: flex; flex-direction: column; gap: 8px; }
-    
-    /* Item Card */
     .item-card {
       background: var(--card); border-radius: var(--r); padding: 14px 16px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; align-items: center; justify-content: space-between; gap: 12px;
       transition: background 0.2s;
     }
     .item-card.is-owned { background: rgba(52,199,89,0.03); }
-    .item-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
-    
-    /* Checkbox Custom */
-    .check-btn {
-      width: 24px; height: 24px; border: 2px solid var(--text-3); border-radius: 6px;
-      transition: all 0.15s; flex-shrink: 0;
+    .item-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; cursor: pointer; }
+
+    /* サムネイル画像（チェックボックスの代わりに配置） */
+    .item-thumb {
+      position: relative; width: 48px; height: 48px; flex-shrink: 0;
+      border-radius: var(--r-sm); overflow: hidden; background: var(--bg);
+      border: 2px solid transparent; display: flex; align-items: center; justify-content: center;
+      filter: grayscale(1) opacity(0.45); transition: filter 0.15s, border-color 0.15s;
     }
-    .item-card.is-owned .check-btn { background: var(--green); border-color: var(--green); }
-    
+    .item-card.is-owned .item-thumb { border-color: var(--green); filter: none; }
+    .item-thumb img { width: 100%; height: 100%; object-fit: contain; padding: 15%; display: block; }
+    .item-thumb.img-fallback img { display: none; }
+    .item-thumb-fallback { display: none; font-size: 20px; }
+    .item-thumb.img-fallback .item-thumb-fallback { display: block; }
+    .item-thumb-check {
+      position: absolute; bottom: -3px; right: -3px;
+      width: 17px; height: 17px; border-radius: 50%; background: var(--green); color: #fff;
+      font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(0.4); transition: all 0.15s; border: 1.5px solid var(--card);
+    }
+    .item-card.is-owned .item-thumb-check { opacity: 1; transform: scale(1); }
+
     /* Item Details */
     .item-details { flex: 1; min-width: 0; }
     .item-name-link {
@@ -133,7 +222,7 @@
     .fav-btn.is-fav { color: #FFCC00; text-shadow: 0 0 2px rgba(255,180,0,0.4); }
 
     /* Empty state */
-    .empty-message { text-align: center; padding: 40px; color: var(--text-2); font-size: 14px; background: var(--card); border-radius: var(--r); }
+    .empty-message { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-2); font-size: 14px; background: var(--card); border-radius: var(--r); }
 
     /* ── Onesie section divider ───────────────────── */
     .onesie-divider {
@@ -248,8 +337,14 @@
     </div>
 
     <!-- ▸ Item List Section -->
-    <p class="sec-label" id="listLabel">アイテム一覧</p>
-    <div class="item-list" id="itemList">
+    <div class="list-header-row">
+      <p class="sec-label" id="listLabel">アイテム一覧</p>
+      <div class="view-toggle" role="group" aria-label="表示切替">
+        <button type="button" class="view-toggle-btn" id="viewBtnGrid" onclick="setViewMode('grid')" aria-pressed="true">▦ グリッド</button>
+        <button type="button" class="view-toggle-btn" id="viewBtnList" onclick="setViewMode('list')" aria-pressed="false">☰ リスト</button>
+      </div>
+    </div>
+    <div class="item-grid" id="itemList">
       <!-- JSで動的に生成 -->
     </div>
 
@@ -265,6 +360,10 @@ const CAT_KEY = 'large_placeable';
 
 // 2. このカテゴリの基本情報
 const CAT_INFO = { name: '大きい設置アイテム', icon: '🏛', img: 'icons/large_placeable.png' };
+
+// 2-b. アイテム画像の保存フォルダ（ファイル名は id と揃えてください。例: images/large_placeable/large_placeable_001.png）
+//      画像がまだ無いアイテムは自動でプレースホルダーアイコンが表示されます
+const ITEM_IMG_DIR = `images/${CAT_KEY}/`;
 
 // 3. アイテムのマスターデータ（ここにアイテムをどんどん追加していきます）
 // cost: 'free'(無課金) または 'premium'(課金)
@@ -396,6 +495,10 @@ const ITEMS_DATA = [
 const LS_KEY = 'gameItems_' + CAT_KEY;
 let userStates = { owned: {}, fav: {} };
 
+// 表示モード（グリッド／リスト）：カテゴリpage共通の設定として保存
+const VIEW_MODE_KEY = 'gameItems_viewMode';
+let viewMode = localStorage.getItem(VIEW_MODE_KEY) || 'grid';
+
 // 初期化処理
 document.addEventListener('DOMContentLoaded', () => {
   // タイトル等UIの書き換え
@@ -407,7 +510,8 @@ document.addEventListener('DOMContentLoaded', () => {
   : CAT_INFO.icon;
   // ローカルストレージからユーザーデータを復元
   loadUserData();
-  // イベントの絞り込みセレクトボックスを構築
+  // 表示モード（グリッド／リスト）をボタン・コンテナに反映
+  updateViewToggleUI();  // イベントの絞り込みセレクトボックスを構築
   buildEventFilter();
   // 色の絞り込みセレクトボックスを構築
   buildTypeFilter();
@@ -509,6 +613,28 @@ function toggleFav(id, btn) {
   btn.textContent = userStates.fav[id] ? '★' : '☆';
 }
 
+// 表示モードの切り替え（グリッド ⇔ リスト）
+function setViewMode(mode) {
+  if (mode !== 'grid' && mode !== 'list') return;
+  viewMode = mode;
+  localStorage.setItem(VIEW_MODE_KEY, mode);
+  updateViewToggleUI();
+  filterAndRender();
+}
+
+// 切替ボタンとコンテナの見た目を現在の viewMode に同期
+function updateViewToggleUI() {
+  const gridBtn = document.getElementById('viewBtnGrid');
+  const listBtn = document.getElementById('viewBtnList');
+  const container = document.getElementById('itemList');
+  gridBtn.classList.toggle('active', viewMode === 'grid');
+  gridBtn.setAttribute('aria-pressed', viewMode === 'grid');
+  listBtn.classList.toggle('active', viewMode === 'list');
+  listBtn.setAttribute('aria-pressed', viewMode === 'list');
+  container.classList.toggle('item-grid', viewMode === 'grid');
+  container.classList.toggle('item-list', viewMode === 'list');
+}
+
 // フィルター・ソートを適用してレンダリング
 function filterAndRender() {
   const fStatus = document.getElementById('filterStatus').value;
@@ -560,16 +686,57 @@ function filterAndRender() {
     return;
   }
 
-  // アイテム1枚のHTMLを生成するヘルパー
-  const renderItem = (item) => {
+  // 所持/お気に入り状態・リンク・画像パスなど両表示で共通の値をまとめて計算
+  const getItemViewData = (item) => {
     const isOwned = !!userStates.owned[item.id];
     const isFav = !!userStates.fav[item.id];
     // Google 検索用URLを生成
     const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + ' Sky')}`;
+    // 画像パス（例: images/large_placeable/large_placeable_001.png）※未配置の間は自動でプレースホルダー表示
+    const imgSrc = `${ITEM_IMG_DIR}${item.id}.png`;
+    return { isOwned, isFav, wikiUrl, imgSrc };
+  };
+
+  // グリッド表示：画像タイル1枚分のHTML
+  const renderItemGrid = (item) => {
+    const { isOwned, isFav, wikiUrl, imgSrc } = getItemViewData(item);
+    // タップ長押し等で全情報を確認できるツールチップ
+    const tip = [item.name, item.event, item.cost === 'premium' ? '課金' : '無課金', `染色${item.dye ? '〇' : '✕'}`, item.noReprint ? '復刻なし' : '', item.type || '']
+      .filter(Boolean).join(' ／ ');
+
+    return `
+      <div class="item-tile">
+        <div class="item-tile-frame ${isOwned ? 'is-owned' : ''}" id="card_${item.id}" title="${tip}" onclick="toggleOwned('${item.id}')">
+          ${item.cost === 'premium' ? '<span class="tile-cost-dot" aria-hidden="true"></span>' : ''}
+          ${item.noReprint ? '<span class="tile-nr-badge">NR</span>' : ''}
+          <!-- お気に入りボタン（タイル選択とバブリングしないようストップ） -->
+          <button class="tile-fav-btn ${isFav ? 'is-fav' : ''}" onclick="event.stopPropagation(); toggleFav('${item.id}', this)" aria-label="お気に入り">${isFav ? '★' : '☆'}</button>
+          <div class="item-tile-img-wrap">
+            <!-- 画像が未配置の場合は onerror でプレースホルダーアイコンに切り替え -->
+            <img src="${imgSrc}" alt="${item.name}" loading="lazy" onerror="this.parentElement.classList.add('img-fallback')">
+            <span class="item-tile-fallback">${CAT_INFO.icon}</span>
+          </div>
+          <span class="tile-owned-check">✓</span>
+        </div>
+        <!-- アイテム名（クリックでWiki検索へジャンプ） -->
+        <a href="${wikiUrl}" target="_blank" rel="noopener noreferrer" class="item-tile-name">${item.name}</a>
+      </div>
+    `;
+  };
+
+  // リスト表示：チェックボックスの代わりに画像サムネイルを配置したカード1枚分のHTML
+  const renderItemList = (item) => {
+    const { isOwned, isFav, wikiUrl, imgSrc } = getItemViewData(item);
+
     return `
       <div class="item-card ${isOwned ? 'is-owned' : ''}" id="card_${item.id}">
-        <div class="item-left" onclick="toggleOwned('${item.id}')" style="cursor:pointer;">
-          <div class="check-btn"></div>
+        <div class="item-left" onclick="toggleOwned('${item.id}')">
+          <div class="item-thumb">
+            <!-- 画像が未配置の場合は onerror でプレースホルダーアイコンに切り替え -->
+            <img src="${imgSrc}" alt="${item.name}" loading="lazy" onerror="this.parentElement.classList.add('img-fallback')">
+            <span class="item-thumb-fallback">${CAT_INFO.icon}</span>
+            <span class="item-thumb-check">✓</span>
+          </div>
           <div class="item-details">
             <!-- アイテム名クリックでWiki検索へジャンプ（バブリングを防ぐためストップ） -->
             <a href="${wikiUrl}" target="_blank" rel="noopener noreferrer" class="item-name-link" onclick="event.stopPropagation();">
@@ -591,6 +758,9 @@ function filterAndRender() {
       </div>
     `;
   };
+
+  // 現在の表示モードに応じてグリッド／リストどちらかを生成
+  const renderItem = (item) => viewMode === 'list' ? renderItemList(item) : renderItemGrid(item);
 
   // アイテム一覧をDOMに書き込む
   listEl.innerHTML = filtered.map(renderItem).join('');
