@@ -111,6 +111,7 @@
     }
     .item-tile { display: flex; flex-direction: column; gap: 5px; }
 
+    /* タイル本体（正方形の画像エリア／タップで所持トグル） */
     .item-tile-frame {
       position: relative; aspect-ratio: 1 / 1; overflow: hidden;
       background: var(--card); border-radius: var(--r-sm);
@@ -120,6 +121,7 @@
     .item-tile-frame:active { transform: scale(0.95); }
     .item-tile-frame.is-owned { border-color: var(--green); }
 
+    /* 画像（未配置の間は仮アイコンにフォールバック） */
     .item-tile-img-wrap {
       position: absolute; inset: 0; z-index: 1;
       display: flex; align-items: center; justify-content: center;
@@ -131,6 +133,7 @@
     .item-tile-fallback { display: none; font-size: 26px; }
     .item-tile-img-wrap.img-fallback .item-tile-fallback { display: block; }
 
+    /* 四隅のステータス表示：左上=課金 / 右上=お気に入り / 左下=復刻なし / 右下=所持済み */
     .tile-cost-dot {
       position: absolute; top: 5px; left: 5px; z-index: 2;
       width: 9px; height: 9px; border-radius: 50%; background: var(--orange);
@@ -158,6 +161,7 @@
     }
     .item-tile-frame.is-owned .tile-owned-check { opacity: 1; transform: scale(1); }
 
+    /* アイテム名（タイル下のキャプション兼Wikiリンク） */
     .item-tile-name {
       font-size: 10.5px; line-height: 1.3; text-align: center; color: var(--text-2);
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
@@ -175,6 +179,7 @@
     .item-card.is-owned { background: rgba(52,199,89,0.03); }
     .item-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; cursor: pointer; }
 
+    /* サムネイル画像（チェックボックスの代わりに配置） */
     .item-thumb {
       position: relative; width: 48px; height: 48px; flex-shrink: 0;
       border-radius: var(--r-sm); overflow: hidden; background: var(--bg);
@@ -217,18 +222,6 @@
 
     /* Empty state */
     .empty-message { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-2); font-size: 14px; background: var(--card); border-radius: var(--r); }
-
-    /* ── Onesie section divider ───────────────────── */
-    .onesie-divider {
-      display: flex; align-items: center; gap: 10px;
-      padding: 20px 4px 8px; color: var(--text-2);
-      font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
-    }
-    .onesie-divider::before, .onesie-divider::after {
-      content: ''; flex: 1; height: 1.5px;
-      background: linear-gradient(90deg, var(--sep), rgba(60,60,67,0.06));
-      border-radius: 2px;
-    }
   </style>
 </head>
 <body>
@@ -252,6 +245,73 @@
   </aside>
 
   <div class="wrap">
+
+    <!-- ▸ Category Status Banner -->
+    <div class="cat-header-card">
+      <div class="cat-header-info">
+        <div class="cat-header-icon" id="catIcon">📦</div>
+        <div>
+          <div class="cat-header-name" id="catName">カテゴリ名</div>
+          <div class="cat-header-count" id="catCount">-- / -- 所持</div>
+        </div>
+      </div>
+      <div class="cat-header-pct" id="catPct">--%</div>
+    </div>
+
+    <!-- ▸ Filter & Sort Control Panel -->
+    <div class="control-panel">
+      <!-- 名前検索 -->
+      <div class="control-row">
+        <span class="control-label">名前検索</span>
+        <input type="text" class="select-box search-input" id="searchName" placeholder="🔍 アイテム名で絞り込み..." oninput="filterAndRender()">
+      </div>
+      <!-- 絞り込み -->
+      <div class="control-row">
+        <span class="control-label">絞り込み</span>
+        <select class="select-box" id="filterStatus" onchange="filterAndRender()">
+          <option value="all">すべての所持状態</option>
+          <option value="owned">所持中のみ</option>
+          <option value="notOwned">未所持のみ</option>
+        </select>
+        <select class="select-box" id="filterFav" onchange="filterAndRender()">
+          <option value="all">すべてのお気に入り</option>
+          <option value="fav">★ お気に入り指定のみ</option>
+        </select>
+      </div>
+      
+      <!-- 条件別絞り込み -->
+      <div class="control-row">
+        <span class="control-label">属性・条件</span>
+        <select class="select-box" id="filterCost" onchange="filterAndRender()">
+          <option value="all">すべての入手方法（課金/無課金）</option>
+          <option value="free">無課金アイテム</option>
+          <option value="premium">課金アイテム</option>
+        </select>
+        <select class="select-box" id="filterDye" onchange="filterAndRender()">
+          <option value="all">すべての染色可否</option>
+          <option value="dye-o">染色 〇</option>
+          <option value="dye-x">染色 ✕</option>
+        </select>
+        <select class="select-box" id="filterReprint" onchange="filterAndRender()">
+          <option value="all">すべての復刻状態</option>
+          <option value="noReprint">復刻なし</option>
+        </select>
+      </div>
+
+      <!-- イベント名絞り込み ＆ 並び替え -->
+      <div class="control-row">
+        <span class="control-label">その他</span>
+        <select class="select-box" id="filterEvent" onchange="filterAndRender()">
+          <option value="all">すべてのイベント・登場元</option>
+          <!-- JSで動的に追加されます -->
+        </select>
+        <select class="select-box" id="sortOrder" onchange="filterAndRender()">
+          <option value="default">並び替え: 標準</option>
+          <option value="nameAsc">アイテム名（昇順）</option>
+          <option value="event">イベント名順</option>
+        </select>
+      </div>
+    </div>
 
     <!-- ▸ Item List Section -->
     <div class="list-header-row">
@@ -333,7 +393,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('catIcon').innerHTML = CAT_INFO.img
   ? `<img src="${CAT_INFO.img}" alt="${CAT_INFO.name}" loading="lazy">`
   : CAT_INFO.icon;
-
   // ローカルストレージからユーザーデータを復元
   loadUserData();
   // 表示モード（グリッド／リスト）をボタン・コンテナに反映
@@ -495,11 +554,13 @@ function filterAndRender() {
     return;
   }
 
-  // 所持・お気に入り状態、リンク・画像パスなど両表示で共通の値をまとめて計算
+  // 所持/お気に入り状態・リンク・画像パスなど両表示で共通の値をまとめて計算
   const getItemViewData = (item) => {
     const isOwned = !!userStates.owned[item.id];
     const isFav = !!userStates.fav[item.id];
-    const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + ' Sky')}`;
+    // Google 検索用URLを生成
+    const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + '　Sky')}`;
+    // 画像パス（例: images/shoes/shoes_001.png）※未配置の間は自動でプレースホルダー表示
     const imgSrc = `${ITEM_IMG_DIR}${item.id}.png`;
     return { isOwned, isFav, wikiUrl, imgSrc };
   };
@@ -507,21 +568,25 @@ function filterAndRender() {
   // グリッド表示：画像タイル1枚分のHTML
   const renderItemGrid = (item) => {
     const { isOwned, isFav, wikiUrl, imgSrc } = getItemViewData(item);
+    // タップ長押し等で全情報を確認できるツールチップ
     const tip = [item.name, item.event, item.cost === 'premium' ? '課金' : '無課金', `染色${item.dye ? '〇' : '✕'}`, item.noReprint ? '復刻なし' : '']
-      .filter(Boolean).join(' ・ ');
+      .filter(Boolean).join(' ／ ');
 
     return `
       <div class="item-tile">
         <div class="item-tile-frame ${isOwned ? 'is-owned' : ''}" id="card_${item.id}" title="${tip}" onclick="toggleOwned('${item.id}')">
           ${item.cost === 'premium' ? '<span class="tile-cost-dot" aria-hidden="true"></span>' : ''}
           ${item.noReprint ? '<span class="tile-nr-badge">NR</span>' : ''}
+          <!-- お気に入りボタン（タイル選択とバブリングしないようストップ） -->
           <button class="tile-fav-btn ${isFav ? 'is-fav' : ''}" onclick="event.stopPropagation(); toggleFav('${item.id}', this)" aria-label="お気に入り">${isFav ? '★' : '☆'}</button>
           <div class="item-tile-img-wrap">
+            <!-- 画像が未配置の場合は onerror でプレースホルダーアイコンに切り替え -->
             <img src="${imgSrc}" alt="${item.name}" loading="lazy" onerror="this.parentElement.classList.add('img-fallback')">
-            <span class="item-tile-fallback">👟</span>
+            <span class="item-tile-fallback">${CAT_INFO.icon}</span>
           </div>
           <span class="tile-owned-check">✓</span>
         </div>
+        <!-- アイテム名（クリックでWiki検索へジャンプ） -->
         <a href="${wikiUrl}" target="_blank" rel="noopener noreferrer" class="item-tile-name">${item.name}</a>
       </div>
     `;
@@ -535,13 +600,15 @@ function filterAndRender() {
       <div class="item-card ${isOwned ? 'is-owned' : ''}" id="card_${item.id}">
         <div class="item-left" onclick="toggleOwned('${item.id}')">
           <div class="item-thumb">
+            <!-- 画像が未配置の場合は onerror でプレースホルダーアイコンに切り替え -->
             <img src="${imgSrc}" alt="${item.name}" loading="lazy" onerror="this.parentElement.classList.add('img-fallback')">
-            <span class="item-thumb-fallback">👟</span>
+            <span class="item-thumb-fallback">${CAT_INFO.icon}</span>
             <span class="item-thumb-check">✓</span>
           </div>
           <div class="item-details">
+            <!-- アイテム名クリックでWiki検索へジャンプ（バブリングを防ぐためストップ） -->
             <a href="${wikiUrl}" target="_blank" rel="noopener noreferrer" class="item-name-link" onclick="event.stopPropagation();">
-              ${item.name} 🔍
+              ${item.name} 🔗
             </a>
             <div class="item-meta-row">
               <span class="badge">${item.event}</span>
@@ -551,6 +618,7 @@ function filterAndRender() {
             </div>
           </div>
         </div>
+        <!-- お気に入りボタン -->
         <button class="fav-btn ${isFav ? 'is-fav' : ''}" onclick="toggleFav('${item.id}', this)">
           ${isFav ? '★' : '☆'}
         </button>
@@ -560,20 +628,8 @@ function filterAndRender() {
 
   // 現在の表示モードに応じてグリッド／リストどちらかを生成
   const renderItem = (item) => viewMode === 'list' ? renderItemList(item) : renderItemGrid(item);
-  const outfitItems = filtered.filter(item => item.type !== 'onesie');
-  const onesieItems = filtered.filter(item => item.type === 'onesie');
 
-  let html = outfitItems.map(renderItem).join('');
-
-  if (onesieItems.length > 0) {
-    // 両グループが混在するときだけ区切り線を表示
-    if (outfitItems.length > 0) {
-      html += `<div class="onesie-divider"><span>🧸 ワンジー</span></div>`;
-    }
-    html += onesieItems.map(renderItem).join('');
-  }
-
-  listEl.innerHTML = html;
+  listEl.innerHTML = filtered.map(renderItem).join('');
   
   // スコアの同期
   const total = ITEMS_DATA.length;
