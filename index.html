@@ -841,13 +841,16 @@
 
     <div class="hint" style="margin-top:0;">
       <span>👆</span>
-      <span>画像を長押し（PCの場合は右クリック）して「画像を保存」を選んでください</span>
+      <span id="previewHintText">画像を長押し（PCの場合は右クリック）して「画像を保存」を選んでください</span>
     </div>
 
     <img id="previewImg" class="preview-img" src="" alt="保存用の画像" />
 
     <div class="action-row">
       <a id="previewDownloadLink" class="action-btn primary full" href="" download="">⬇️ ダウンロード</a>
+    </div>
+    <div class="action-row" id="previewTwitterRow" style="display:none;">
+      <a id="previewTwitterLink" class="action-btn twitter full" href="" target="_blank" rel="noopener noreferrer">📤 Xの投稿画面を開く</a>
     </div>
   </div>
 </div>
@@ -1400,10 +1403,13 @@ function buildExportCardEl(title, items) {
   return card;
 }
 
-// 指定したカード生成関数の出力を画像として書き出し、保存する（共通処理）
-// 1) Web Share API（ファイル共有）に対応していれば、共有シートから直接「画像を保存」できるようにする
+// 指定したカード生成関数の出力を画像として書き出し、保存/共有する（共通処理）
+// 1) Web Share API（ファイル共有）に対応していれば、共有シートから直接「画像を保存」または他アプリへ渡せる
+//    opts.shareText を渡すと、画像と一緒にコメント文も共有できる（Xアプリ等が両方受け取れる）
 // 2) 非対応・失敗時は、画像を画面に表示して長押し（PCは右クリック）またはダウンロードボタンで保存してもらう
-async function exportElementAsImage(buildCardFn, filenameBase) {
+//    （shareText がある場合はXの投稿画面を開くボタンも合わせて表示し、手動で添付してもらう）
+async function exportElementAsImage(buildCardFn, filenameBase, opts = {}) {
+  const { shareText, successToast = '画像を保存しました！' } = opts;
   showToast('画像を生成中…');
   let card = null;
   try {
@@ -1412,9 +1418,9 @@ async function exportElementAsImage(buildCardFn, filenameBase) {
     const canvas = await html2canvas(card, { backgroundColor: null, scale: 2 });
     const filename = sanitizeFilename(filenameBase) + '.png';
 
-    const shareResult = await tryShareImage(canvas, filename);
+    const shareResult = await tryShareImage(canvas, filename, shareText);
     if (shareResult === 'success') {
-      showToast('画像を保存しました！');
+      showToast(successToast);
       return;
     }
     if (shareResult === 'cancelled') {
@@ -1422,7 +1428,7 @@ async function exportElementAsImage(buildCardFn, filenameBase) {
     }
 
     // 共有に非対応 or 失敗 → 長押し保存用に画像を表示
-    openImagePreview(canvas.toDataURL('image/png'), filename);
+    openImagePreview(canvas.toDataURL('image/png'), filename, shareText);
   } catch (err) {
     console.error(err);
     showToast('画像の保存に失敗しました');
@@ -1431,16 +1437,17 @@ async function exportElementAsImage(buildCardFn, filenameBase) {
   }
 }
 
-// Web Share API（ファイル共有）で画像の保存を試みる
+// Web Share API（ファイル共有）で画像（＋テキスト）の共有を試みる
 // 戻り値: 'success'（共有完了） / 'cancelled'（ユーザーがキャンセル） / 'unsupported'（非対応 or 失敗）
-async function tryShareImage(canvas, filename) {
+async function tryShareImage(canvas, filename, text) {
   if (!navigator.share || !navigator.canShare) return 'unsupported';
   try {
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     if (!blob) return 'unsupported';
     const file = new File([blob], filename, { type: 'image/png' });
-    if (!navigator.canShare({ files: [file] })) return 'unsupported';
-    await navigator.share({ files: [file] });
+    const shareData = text ? { files: [file], text } : { files: [file] };
+    if (!navigator.canShare(shareData)) return 'unsupported';
+    await navigator.share(shareData);
     return 'success';
   } catch (err) {
     if (err && err.name === 'AbortError') return 'cancelled';
@@ -1449,11 +1456,26 @@ async function tryShareImage(canvas, filename) {
 }
 
 // 画像プレビューモーダルを開く（長押し/右クリック、またはダウンロードボタンで保存）
-function openImagePreview(dataUrl, filename) {
+// shareText を渡すと「Xの投稿画面を開く」ボタンも表示する（Web Share非対応環境向けの代替導線）
+function openImagePreview(dataUrl, filename, shareText) {
   document.getElementById('previewImg').src = dataUrl;
   const link = document.getElementById('previewDownloadLink');
   link.href = dataUrl;
   link.download = filename;
+
+  const hint  = document.getElementById('previewHintText');
+  const twRow = document.getElementById('previewTwitterRow');
+
+  if (shareText) {
+    hint.textContent = 'まず画像を保存 → 下のボタンでXの投稿画面を開いたら、その画像を添付して投稿してください';
+    document.getElementById('previewTwitterLink').href =
+      'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText);
+    twRow.style.display = '';
+  } else {
+    hint.textContent = '画像を長押し（PCの場合は右クリック）して「画像を保存」を選んでください';
+    twRow.style.display = 'none';
+  }
+
   openModal('imagePreviewModal');
 }
 
@@ -1466,29 +1488,32 @@ function saveCoordAsImage(title, items, filenameBase) {
   return exportElementAsImage(() => buildExportCardEl(title, items), filenameBase);
 }
 
-// コーデ内容からツイート本文を作成（文末に必ずサイトURLを付与）
-function buildCoordTweetText(label, items) {
-  const lines = CATS
-    .map(cat => {
-      const item = items[cat.key];
-      return item ? `${cat.icon} ${item.name}` : null;
-    })
-    .filter(Boolean);
-  return `${label}のコーデ\n\n${lines.join('\n')}\n\n${SITE_URL}`;
-}
-
-// Xの投稿画面（Web Intent）を新規タブで開く（共通処理）
-function openTwitterIntent(text) {
-  const intentUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
-  window.open(intentUrl, '_blank', 'noopener,noreferrer');
-}
-
-function shareCoordOnTwitterIntent(label, items) {
+// コーデを「画像＋一言コメント」としてXへ共有する
+// アイテム名を文字で列挙するのではなく、画像共有（保存）と同じカード画像をそのまま添付する
+function shareCoordImageOnX(title, items, filenameBase, shareText) {
   if (!items || Object.keys(items).length === 0) {
     showToast('コーデが選択されていません');
     return;
   }
-  openTwitterIntent(buildCoordTweetText(label, items));
+  return exportElementAsImage(() => buildExportCardEl(title, items), filenameBase, {
+    shareText,
+    successToast: '共有しました！'
+  });
+}
+
+// コーデ共有時のコメント文（アイテムの列挙はしない。内容は画像側で見せる）
+function buildRandomShareText() {
+  return `🎲 ランダムコーデが決まりました！\n\n${SITE_URL}`;
+}
+
+function buildMyCoordShareText(label) {
+  return `👗「${label}」のコーデ\n\n${SITE_URL}`;
+}
+
+// Xの投稿画面（Web Intent）を新規タブで開く（達成率シェア等、テキストのみの共有で使用）
+function openTwitterIntent(text) {
+  const intentUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+  window.open(intentUrl, '_blank', 'noopener,noreferrer');
 }
 
 // ── ランダムコーデ: 画像保存・Xシェア ──────────
@@ -1497,7 +1522,7 @@ function saveRandomAsImage() {
 }
 
 function shareRandomOnTwitter() {
-  return shareCoordOnTwitterIntent('ランダムコーデ', currentRandom);
+  return shareCoordImageOnX('🎲 ランダムコーデ', currentRandom, 'random-coord', buildRandomShareText());
 }
 
 // ── マイコーデ: 画像保存・Xシェア ──────────────
@@ -1510,7 +1535,7 @@ function saveMyCoordAsImage(id) {
 function shareMyCoordOnTwitter(id) {
   const set = getSavedCoords().find(s => s.id === id);
   if (!set) return;
-  return shareCoordOnTwitterIntent(set.name, set.items);
+  return shareCoordImageOnX(`👗 ${set.name}`, set.items, set.name, buildMyCoordShareText(set.name));
 }
 
 // ── 総合達成率: 画像保存・Xシェア ──────────────
