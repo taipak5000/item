@@ -835,7 +835,7 @@
 <div class="modal-overlay" id="imagePreviewModal" onclick="if(event.target===this)closeModal('imagePreviewModal')">
   <div class="modal-card">
     <div class="modal-header">
-      <span class="modal-title">🖼️ 画像を保存</span>
+      <span class="modal-title" id="previewModalTitle">🖼️ 画像を保存</span>
       <button class="modal-close" onclick="closeModal('imagePreviewModal')">✕</button>
     </div>
 
@@ -1437,9 +1437,29 @@ async function exportElementAsImage(buildCardFn, filenameBase, opts = {}) {
   }
 }
 
+// スマホ端末かどうかを判定する
+// （PCのChrome/Edge/Safariもnavigator.share自体は持っているが、Xアプリのような
+// 「画像＋テキストを受け取れる共有先」がOSに登録されていないことが多い。
+// その場合、共有シートを開いても行き先が無く、ユーザーが「保存」的な項目を選ぶと
+// navigator.share()はエラーを出さず成功扱いになってしまい、
+// 本来出すべきXの投稿画面（フォールバック）が二度と出てこなくなる。
+// そのためファイル共有はスマホ端末に限定する）
+function isMobileDevice() {
+  if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
+    return navigator.userAgentData.mobile;
+  }
+  const ua = navigator.userAgent || '';
+  if (/Android|iPhone|iPod|iPad/i.test(ua)) return true;
+  // iPadOS 13+ はUser-AgentがMacintoshと同じになるため、タッチ対応で判定する
+  if (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) return true;
+  return false;
+}
+
 // Web Share API（ファイル共有）で画像（＋テキスト）の共有を試みる
 // 戻り値: 'success'（共有完了） / 'cancelled'（ユーザーがキャンセル） / 'unsupported'（非対応 or 失敗）
 async function tryShareImage(canvas, filename, text) {
+  // PCはWeb Shareに対応していても実質使えないため、最初からフォールバック（画像保存＋Xの投稿画面を開く）に回す
+  if (!isMobileDevice()) return 'unsupported';
   if (!navigator.share || !navigator.canShare) return 'unsupported';
   try {
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -1465,13 +1485,16 @@ function openImagePreview(dataUrl, filename, shareText) {
 
   const hint  = document.getElementById('previewHintText');
   const twRow = document.getElementById('previewTwitterRow');
+  const title = document.getElementById('previewModalTitle');
 
   if (shareText) {
-    hint.textContent = 'まず画像を保存 → 下のボタンでXの投稿画面を開いたら、その画像を添付して投稿してください';
+    title.textContent = '🖼️ 画像を保存してXへ投稿';
+    hint.textContent = '① 下の「ダウンロード」で画像を保存 → ② 「Xの投稿画面を開く」を押して、保存した画像を添付して投稿してください';
     document.getElementById('previewTwitterLink').href =
       'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText);
     twRow.style.display = '';
   } else {
+    title.textContent = '🖼️ 画像を保存';
     hint.textContent = '画像を長押し（PCの場合は右クリック）して「画像を保存」を選んでください';
     twRow.style.display = 'none';
   }
