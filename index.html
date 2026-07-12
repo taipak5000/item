@@ -523,6 +523,27 @@
     }
     .cat-sel:disabled { opacity: 0.4; }
 
+    /* ── アイテム横断検索（季節・イベント検索） ─── */
+    .gs-control-panel { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
+    .gs-control-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .gs-control-row > .form-input,
+    .gs-control-row > .cat-sel { flex: 1; min-width: 140px; }
+    .gs-row-main { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; cursor: pointer; }
+    .gs-item-name {
+      font-size: 14px; font-weight: 600; margin-top: 1px; color: var(--text); display: inline-block;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .gs-item-name:hover { color: var(--blue); text-decoration: underline; }
+    .gs-owned-dot {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; color: #fff;
+      background: var(--card); border: 1.5px solid var(--text-3);
+      transition: all 0.15s;
+    }
+    .gs-owned-dot.owned { background: var(--green); border-color: var(--green); }
+    .gs-result-count { font-size: 12px; color: var(--text-2); font-weight: 500; }
+
     /* ── Export card（画像保存用・非表示要素） ──── */
     .export-card {
       position: fixed; left: -9999px; top: 0;
@@ -732,6 +753,14 @@
     <span>各カテゴリページでアイテムを登録すると、ここに所持率が自動で反映されます</span>
   </div>
 
+  <!-- ▸ アイテム検索（季節・イベント横断） -->
+  <p class="sec-label">アイテム検索</p>
+  <button class="feature-btn" onclick="openItemSearch()">
+    <span class="feature-icon">🔍</span>
+    <span class="feature-label">季節・イベントでアイテムを検索</span>
+    <span class="feature-desc">全カテゴリのアイテムを季節・日々・カテゴリ・所持状況で横断検索できます</span>
+  </button>
+
   <!-- ▸ 達成率シェア -->
   <p class="sec-label">達成率をシェア</p>
   <div class="feature-row">
@@ -828,6 +857,48 @@
       <button class="action-btn primary full" style="margin-top:12px;" onclick="saveCreatedCoord()">このコーデを保存</button>
     </div>
 
+  </div>
+</div>
+
+<!-- ▸ Modal: アイテム検索（季節・イベント横断） -->
+<div class="modal-overlay" id="itemSearchModal" onclick="if(event.target===this)closeModal('itemSearchModal')">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title">🔍 アイテム検索</span>
+      <button class="modal-close" onclick="closeModal('itemSearchModal')">✕</button>
+    </div>
+
+    <div class="gs-control-panel">
+      <div class="gs-control-row">
+        <input type="text" class="form-input" id="gsName" placeholder="🔍 アイテム名で検索..." oninput="renderGlobalSearch()">
+      </div>
+      <div class="gs-control-row">
+        <select class="cat-sel" id="gsEvent" onchange="renderGlobalSearch()">
+          <option value="all">すべての季節・イベント</option>
+        </select>
+      </div>
+      <div class="gs-control-row">
+        <select class="cat-sel" id="gsCat" onchange="renderGlobalSearch()">
+          <option value="all">すべてのカテゴリ</option>
+        </select>
+        <select class="cat-sel" id="gsOwned" onchange="renderGlobalSearch()">
+          <option value="all">すべての所持状態</option>
+          <option value="owned">所持中のみ</option>
+          <option value="notOwned">未所持のみ</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="hint" style="margin-top:10px;">
+      <span>💡</span>
+      <span>タップで所持状態を切り替えられます（各カテゴリページにも反映されます）</span>
+    </div>
+
+    <div style="display:flex; align-items:baseline; justify-content:space-between; padding:16px 4px 8px;">
+      <p class="sec-label" id="gsResultLabel" style="padding:0;">検索結果</p>
+      <span class="gs-result-count" id="gsResultCount"></span>
+    </div>
+    <div id="gsResults"><!-- JS --></div>
   </div>
 </div>
 
@@ -1003,6 +1074,7 @@ function preloadCatIcons() {
 preloadCatIcons();
 
 document.addEventListener('DOMContentLoaded', loadAndRender);
+document.addEventListener('DOMContentLoaded', buildCategoryFilterOptions);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) loadAndRender();
 });
@@ -1021,6 +1093,224 @@ function toggleSidebar() {
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('sidebar-open');
   document.getElementById('sidebarOverlay').classList.remove('visible');
+}
+
+/* ================================================================
+   アイテム横断検索（季節・日々・イベントで検索）
+   ── 各カテゴリページ（outfit.html 等）は総合メニューとは別に
+      アイテムのマスターデータ（ITEMS_DATA）を持っているため、
+      総合メニュー側は各カテゴリページ本体を fetch して中身から
+      ITEMS_DATA を取り出し、その場で1つのリストにまとめている。
+      ＝各カテゴリページに手を加える必要はなく、新しいカテゴリを
+      　CATS 配列に追加するだけで検索対象にも自動的に含まれる。
+   ※ GitHub Pages 等サーバー経由で開いた時のみ動作します
+     （file:// で直接開くとブラウザの制限で fetch が失敗します）
+   ================================================================ */
+let allItemsCache = null;          // [{ id, name, event, cost, dye, noReprint, type, catKey }, ...]
+let allItemsLoadingPromise = null;
+
+// カテゴリページのHTML本文から "const ITEMS_DATA = [ ... ]" の配列部分だけを
+// 文字列として抜き出す（文字列リテラル内の [ ] は無視して深さを数える簡易パーサー）
+function extractItemsDataArray(htmlText) {
+  const m = /(?:const|let|var)\s+ITEMS_DATA\s*=\s*\[/.exec(htmlText);
+  if (!m) return null;
+  let i = m.index + m[0].length - 1; // '[' の位置
+  let depth = 0, inString = false, stringChar = '', escaped = false, endIdx = -1;
+  for (; i < htmlText.length; i++) {
+    const ch = htmlText[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === stringChar) inString = false;
+      continue;
+    }
+    if (ch === "'" || ch === '"' || ch === '`') { inString = true; stringChar = ch; continue; }
+    if (ch === '[') depth++;
+    else if (ch === ']') { depth--; if (depth === 0) { endIdx = i; break; } }
+  }
+  return endIdx === -1 ? null : htmlText.slice(m.index + m[0].length - 1, endIdx + 1);
+}
+
+// 全カテゴリページを1回だけ取得し、アイテムを1つの配列にまとめてキャッシュする
+function loadAllItemsOnce() {
+  if (allItemsCache) return Promise.resolve(allItemsCache);
+  if (allItemsLoadingPromise) return allItemsLoadingPromise;
+
+  allItemsLoadingPromise = Promise.all(CATS.map(async cat => {
+    try {
+      const res = await fetch(cat.file, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const arrText = extractItemsDataArray(text);
+      if (!arrText) return [];
+      const items = new Function('return ' + arrText)();
+      return items.map(it => ({ ...it, catKey: cat.key }));
+    } catch (e) {
+      console.warn(`アイテム検索: ${cat.file} の読み込みに失敗しました（未作成の可能性があります）`, e);
+      return [];
+    }
+  })).then(results => {
+    allItemsCache = results.flat();
+    allItemsLoadingPromise = null;
+    return allItemsCache;
+  }).catch(err => {
+    allItemsLoadingPromise = null;
+    throw err;
+  });
+
+  return allItemsLoadingPromise;
+}
+
+// カテゴリ絞り込みセレクトの中身を構築（CATS配列があれば即時に組み立てられる）
+function buildCategoryFilterOptions() {
+  const select = document.getElementById('gsCat');
+  if (!select) return;
+  select.innerHTML = `<option value="all">すべてのカテゴリ</option>` +
+    CATS.map(c => `<option value="${c.key}">${escapeHtml(c.name)}</option>`).join('');
+}
+
+// イベント（季節・日々）絞り込みセレクトの中身を構築
+// 「○○の季節」「○○の日々」という命名規則を利用して optgroup で分けて表示する
+function buildEventFilterOptions() {
+  const select = document.getElementById('gsEvent');
+  if (!select || !allItemsCache) return;
+
+  const events = [...new Set(allItemsCache.map(it => it.event))].sort((a, b) => a.localeCompare(b, 'ja'));
+  const seasonEvents = events.filter(e => e.includes('季節'));
+  const dayEvents    = events.filter(e => e.includes('日々'));
+  const otherEvents  = events.filter(e => !e.includes('季節') && !e.includes('日々'));
+  const opts = list => list.map(ev => `<option value="${escapeHtml(ev)}">${escapeHtml(ev)}</option>`).join('');
+
+  select.innerHTML = `<option value="all">すべての季節・イベント</option>`
+    + (seasonEvents.length ? `<optgroup label="🍁 季節">${opts(seasonEvents)}</optgroup>` : '')
+    + (dayEvents.length    ? `<optgroup label="☀️ 日々">${opts(dayEvents)}</optgroup>`    : '')
+    + (otherEvents.length  ? `<optgroup label="✨ その他">${opts(otherEvents)}</optgroup>`  : '');
+}
+
+// 指定カテゴリの所持状況（itemOwned マップ）をlocalStorageから読み出す
+function readCatState(catKey) {
+  try {
+    const d = JSON.parse(localStorage.getItem('gameItems_' + catKey));
+    return { owned: d?.itemOwned || {}, fav: d?.itemFav || {} };
+  } catch { return { owned: {}, fav: {} }; }
+}
+
+// 検索モーダルを開く（初回のみ全カテゴリのデータを取得する）
+async function openItemSearch() {
+  openModal('itemSearchModal');
+
+  if (allItemsCache) { renderGlobalSearch(); return; }
+
+  document.getElementById('gsResults').innerHTML =
+    `<div class="empty-msg">読み込み中…<br>各カテゴリのアイテムデータを取得しています</div>`;
+  document.getElementById('gsResultCount').textContent = '';
+
+  try {
+    await loadAllItemsOnce();
+    buildEventFilterOptions();
+    renderGlobalSearch();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('gsResults').innerHTML =
+      `<div class="empty-msg">読み込みに失敗しました。<br>GitHub Pages公開後のURLで開いているかご確認のうえ、<br>もう一度お試しください。</div>`;
+  }
+}
+
+// 絞り込み条件を適用して検索結果を描画
+function renderGlobalSearch() {
+  if (!allItemsCache) return;
+
+  const fName  = document.getElementById('gsName').value.trim().toLowerCase();
+  const fEvent = document.getElementById('gsEvent').value;
+  const fCat   = document.getElementById('gsCat').value;
+  const fOwned = document.getElementById('gsOwned').value;
+
+  const stateCache = {};
+  const getState = catKey => stateCache[catKey] || (stateCache[catKey] = readCatState(catKey));
+
+  const filtered = allItemsCache.filter(item => {
+    if (fName && !item.name.toLowerCase().includes(fName)) return false;
+    if (fEvent !== 'all' && item.event !== fEvent) return false;
+    if (fCat !== 'all' && item.catKey !== fCat) return false;
+    if (fOwned !== 'all') {
+      const isOwned = !!getState(item.catKey).owned[item.id];
+      if (fOwned === 'owned' && !isOwned) return false;
+      if (fOwned === 'notOwned' && isOwned) return false;
+    }
+    return true;
+  });
+
+  const ownedCount = filtered.filter(item => !!getState(item.catKey).owned[item.id]).length;
+  document.getElementById('gsResultCount').textContent =
+    filtered.length > 0 ? `${filtered.length}件（所持 ${ownedCount}件）` : '';
+
+  const resultsEl = document.getElementById('gsResults');
+  if (filtered.length === 0) {
+    resultsEl.innerHTML = `<div class="empty-msg">条件に一致するアイテムが見つかりません。</div>`;
+    return;
+  }
+
+  resultsEl.innerHTML = filtered.map(item => {
+    const cat = CATS.find(c => c.key === item.catKey);
+    if (!cat) return '';
+    const isOwned = !!getState(item.catKey).owned[item.id];
+    const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + ' Sky')}`;
+    return `
+      <div class="rand-row" id="gsrow_${cat.key}_${item.id}">
+        <div class="gs-row-main" onclick="toggleOwnedFromSearch('${cat.key}','${item.id}')">
+          <div class="rand-icon">${itemIconHtml(cat, item)}</div>
+          <div class="rand-info">
+            <div class="rand-cat">${escapeHtml(cat.name)} ・ ${escapeHtml(item.event)}</div>
+            <a href="${wikiUrl}" target="_blank" rel="noopener noreferrer" class="gs-item-name"
+               onclick="event.stopPropagation()">${escapeHtml(item.name)}</a>
+          </div>
+        </div>
+        <div class="gs-owned-dot ${isOwned ? 'owned' : ''}" aria-hidden="true">${isOwned ? '✓' : ''}</div>
+      </div>`;
+  }).join('');
+}
+
+// 検索結果からその場で所持状態をトグルする（各カテゴリページのデータ形式と完全互換）
+function toggleOwnedFromSearch(catKey, itemId) {
+  const key = 'gameItems_' + catKey;
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(key)) || {}; } catch { saved = {}; }
+
+  const ownedMap = saved.itemOwned || {};
+  ownedMap[itemId] = !ownedMap[itemId];
+  const nowOwned = ownedMap[itemId];
+
+  const catItems = allItemsCache.filter(it => it.catKey === catKey);
+  const dataToSave = {
+    total: catItems.length,
+    owned: catItems.filter(it => ownedMap[it.id]).length,
+    itemOwned: ownedMap,
+    itemFav: saved.itemFav || {},
+    ownedItems: catItems.filter(it => ownedMap[it.id]).map(it => ({ id: it.id, name: it.name }))
+  };
+  localStorage.setItem(key, JSON.stringify(dataToSave));
+
+  // 所持中のみ／未所持のみで絞り込み中は対象から外れる可能性があるため全体を再描画、
+  // それ以外はスムーズに該当行だけ切り替える
+  if (document.getElementById('gsOwned').value !== 'all') {
+    renderGlobalSearch();
+  } else {
+    const row = document.getElementById(`gsrow_${catKey}_${itemId}`);
+    const dot = row?.querySelector('.gs-owned-dot');
+    if (dot) {
+      dot.classList.toggle('owned', nowOwned);
+      dot.textContent = nowOwned ? '✓' : '';
+    }
+    const countEl = document.getElementById('gsResultCount');
+    const m = countEl.textContent.match(/^(\d+)件（所持 (\d+)件）$/);
+    if (m) {
+      const total = Number(m[1]);
+      const owned = Number(m[2]) + (nowOwned ? 1 : -1);
+      countEl.textContent = `${total}件（所持 ${owned}件）`;
+    }
+  }
+
+  loadAndRender(); // 総合メニューのカテゴリカード側もリアルタイム更新
 }
 
 /* ================================================================
