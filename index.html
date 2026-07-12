@@ -543,6 +543,12 @@
     }
     .gs-owned-dot.owned { background: var(--green); border-color: var(--green); }
     .gs-result-count { font-size: 12px; color: var(--text-2); font-weight: 500; }
+    .gs-fav-btn {
+      font-size: 18px; line-height: 1; padding: 4px; flex-shrink: 0;
+      color: var(--text-3); transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .gs-fav-btn.is-fav { color: #FFCC00; text-shadow: 0 0 2px rgba(255,180,0,0.4); }
+    .gs-fav-btn:active { transform: scale(1.25); }
 
     /* ── Export card（画像保存用・非表示要素） ──── */
     .export-card {
@@ -758,7 +764,7 @@
   <button class="feature-btn" onclick="openItemSearch()">
     <span class="feature-icon">🔍</span>
     <span class="feature-label">季節・イベントでアイテムを検索</span>
-    <span class="feature-desc">全カテゴリのアイテムを季節・日々・カテゴリ・所持状況で横断検索できます</span>
+    <span class="feature-desc">全カテゴリのアイテムを季節・日々・カテゴリ・お気に入り・所持状況で横断検索できます</span>
   </button>
 
   <!-- ▸ 達成率シェア -->
@@ -886,12 +892,16 @@
           <option value="owned">所持中のみ</option>
           <option value="notOwned">未所持のみ</option>
         </select>
+        <select class="cat-sel" id="gsFav" onchange="renderGlobalSearch()">
+          <option value="all">すべてのお気に入り</option>
+          <option value="fav">★ お気に入り指定のみ</option>
+        </select>
       </div>
     </div>
 
     <div class="hint" style="margin-top:10px;">
       <span>💡</span>
-      <span>タップで所持状態を切り替えられます（各カテゴリページにも反映されます）</span>
+      <span>タップで所持状態を切り替え、★でお気に入り登録ができます（各カテゴリページにも反映されます）</span>
     </div>
 
     <div style="display:flex; align-items:baseline; justify-content:space-between; padding:16px 4px 8px;">
@@ -1224,6 +1234,7 @@ function renderGlobalSearch() {
   const fEvent = document.getElementById('gsEvent').value;
   const fCat   = document.getElementById('gsCat').value;
   const fOwned = document.getElementById('gsOwned').value;
+  const fFav   = document.getElementById('gsFav').value;
 
   const stateCache = {};
   const getState = catKey => stateCache[catKey] || (stateCache[catKey] = readCatState(catKey));
@@ -1237,6 +1248,7 @@ function renderGlobalSearch() {
       if (fOwned === 'owned' && !isOwned) return false;
       if (fOwned === 'notOwned' && isOwned) return false;
     }
+    if (fFav === 'fav' && !getState(item.catKey).fav[item.id]) return false;
     return true;
   });
 
@@ -1254,6 +1266,7 @@ function renderGlobalSearch() {
     const cat = CATS.find(c => c.key === item.catKey);
     if (!cat) return '';
     const isOwned = !!getState(item.catKey).owned[item.id];
+    const isFav   = !!getState(item.catKey).fav[item.id];
     const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + ' Sky')}`;
     return `
       <div class="rand-row" id="gsrow_${cat.key}_${item.id}">
@@ -1265,6 +1278,7 @@ function renderGlobalSearch() {
                onclick="event.stopPropagation()">${escapeHtml(item.name)}</a>
           </div>
         </div>
+        <button class="gs-fav-btn ${isFav ? 'is-fav' : ''}" onclick="toggleFavFromSearch('${cat.key}','${item.id}', this)" aria-label="お気に入り">${isFav ? '★' : '☆'}</button>
         <div class="gs-owned-dot ${isOwned ? 'owned' : ''}" aria-hidden="true">${isOwned ? '✓' : ''}</div>
       </div>`;
   }).join('');
@@ -1311,6 +1325,37 @@ function toggleOwnedFromSearch(catKey, itemId) {
   }
 
   loadAndRender(); // 総合メニューのカテゴリカード側もリアルタイム更新
+}
+
+// 検索結果からその場でお気に入り状態をトグルする（各カテゴリページの★ボタンと完全互換）
+function toggleFavFromSearch(catKey, itemId, btnEl) {
+  const key = 'gameItems_' + catKey;
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(key)) || {}; } catch { saved = {}; }
+
+  const favMap = saved.itemFav || {};
+  favMap[itemId] = !favMap[itemId];
+  const nowFav = favMap[itemId];
+
+  const ownedMap = saved.itemOwned || {};
+  const catItems = allItemsCache.filter(it => it.catKey === catKey);
+  const dataToSave = {
+    total: catItems.length,
+    owned: catItems.filter(it => ownedMap[it.id]).length,
+    itemOwned: ownedMap,
+    itemFav: favMap,
+    ownedItems: catItems.filter(it => ownedMap[it.id]).map(it => ({ id: it.id, name: it.name }))
+  };
+  localStorage.setItem(key, JSON.stringify(dataToSave));
+
+  // お気に入りのみで絞り込み中は対象から外れる可能性があるため全体を再描画、
+  // それ以外はボタンの見た目だけスムーズに切り替える
+  if (document.getElementById('gsFav').value !== 'all') {
+    renderGlobalSearch();
+  } else if (btnEl) {
+    btnEl.classList.toggle('is-fav', nowFav);
+    btnEl.textContent = nowFav ? '★' : '☆';
+  }
 }
 
 /* ================================================================
