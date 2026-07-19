@@ -471,8 +471,30 @@ function updateHeaderScore(owned, total) {
 }
 
 // 重複のないイベントリストを絞り込みボックスに追加
+// 季節は実装順（登場した順）、日々は来福の日々を起点とした年間の開催順。
+// リストに無いイベント名（コラボ・単発イベント等）は、元の登場順のまま末尾に続く。
+const EVENT_ORDER = [
+  '感謝の季節', '光の探求者の季節', '想いを編む季節', 'リズムが弾ける季節', '魔法の季節',
+  '楽園の季節', '預言者の季節', '夢かなう季節', '大樹に集う季節', '星の王子さまの季節',
+  '羽ばたく季節', '深淵の季節', '表現者たちの季節', '砕ケル闇ノ季節', 'AURORAの季節',
+  '追慕の季節', 'ならいの季節', '瞬きの季節', '復古の季節', '九色の鹿の季節',
+  '巣づくりの季節', '重なる音色の季節', 'ムーミンの季節', '光に染まる季節', '青い鳥の季節',
+  'ふたつの灯火の季節　前編', '渡りの季節', '光の修繕者の季節', 'カーニバルの季節',
+  '来福の日々', '花笑む日々', '自然の日々', '彩なす日々', 'Skyアニバーサリー',
+  '陽光の日々', '月灯りの日々', 'いたずらな日々', '分かち合いの日々', '聖なる星の日々',
+  '愛しみの日々'
+];
+
 function buildEventFilter() {
   const events = [...new Set(ITEMS_DATA.map(item => item.event))];
+  events.sort((a, b) => {
+    const ia = EVENT_ORDER.indexOf(a);
+    const ib = EVENT_ORDER.indexOf(b);
+    if (ia === -1 && ib === -1) return 0;
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
   const select = document.getElementById('filterEvent');
   events.forEach(ev => {
     const opt = document.createElement('option');
