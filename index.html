@@ -1868,12 +1868,6 @@ function buildMyCoordShareText(label) {
   return `👗「${label}」のコーデ\n\n${SITE_URL}`;
 }
 
-// Xの投稿画面（Web Intent）を新規タブで開く（達成率シェア等、テキストのみの共有で使用）
-function openTwitterIntent(text) {
-  const intentUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
-  window.open(intentUrl, '_blank', 'noopener,noreferrer');
-}
-
 // ── ランダムコーデ: 画像保存・Xシェア ──────────
 function saveRandomAsImage() {
   return saveCoordAsImage('🎲 ランダムコーデ', currentRandom, 'random-coord');
@@ -1960,7 +1954,10 @@ function shareOverallOnTwitter() {
     showToast('まずはカテゴリページでアイテムを登録してください');
     return;
   }
-  openTwitterIntent(buildOverallTweetText());
+  return exportElementAsImage(buildOverallExportCardEl, 'コレクション達成率', {
+    shareText: buildOverallTweetText(),
+    successToast: '共有しました！'
+  });
 }
 
 // ── Toast ──────────────────────────────────────
