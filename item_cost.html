@@ -83,8 +83,19 @@
       background: var(--card); border-radius: var(--r); padding: 14px 16px; margin-bottom: 8px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.07);
     }
-    .item-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-    .item-name { font-size: 14.5px; font-weight: 700; }
+    .item-card.owned { background: rgba(52,199,89,0.07); box-shadow: 0 1px 4px rgba(52,199,89,0.12); }
+    .item-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .item-thumb {
+      width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--r-sm); overflow: hidden;
+      background: var(--bg); display: flex; align-items: center; justify-content: center;
+    }
+    .item-thumb img { width: 100%; height: 100%; object-fit: contain; padding: 12%; display: block; }
+    .item-thumb.img-fallback img { display: none; }
+    .item-thumb-fallback { display: none; font-size: 18px; }
+    .item-thumb.img-fallback .item-thumb-fallback { display: block; }
+    .item-info { flex: 1; min-width: 0; }
+    .item-name { font-size: 14.5px; font-weight: 700; color: inherit; }
+    .item-name:hover { color: var(--blue); }
     .item-source { font-size: 12px; color: var(--text-2); margin-top: 2px; }
     .item-cost { font-size: 15px; font-weight: 800; color: var(--orange-d); white-space: nowrap; }
     .item-cost.money { color: var(--red); }
@@ -1392,7 +1403,7 @@ function getAllItems() {
   Object.keys(ITEM_COST_DATA).forEach(catKey => {
     const owned = readOwnedMap(catKey);
     ITEM_COST_DATA[catKey].forEach(item => {
-      all.push({ ...item, owned: !!owned[item.id] });
+      all.push({ ...item, owned: !!owned[item.id], catKey });
     });
   });
   return all;
@@ -1419,12 +1430,18 @@ function renderItemCard(item, owned) {
   if (item.limited) badges.push(`<span class="item-badge limited">復刻なし</span>`);
 
   const costClass = item.cost.type === 'money' ? 'money' : (item.cost.type === 'unknown' || item.cost.type === 'na' || item.cost.type === 'ticket' ? 'unknown' : '');
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + '　Sky')}`;
+  const imgSrc = `images/${item.catKey}/${item.id}.png`;
 
   return `
-    <div class="item-card">
+    <div class="item-card ${owned ? 'owned' : ''}">
       <div class="item-head">
-        <div>
-          <div class="item-name">${escapeHtml(item.name)}</div>
+        <div class="item-thumb">
+          <img src="${imgSrc}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.parentElement.classList.add('img-fallback')">
+          <span class="item-thumb-fallback">🏷️</span>
+        </div>
+        <div class="item-info">
+          <a href="${searchUrl}" target="_blank" rel="noopener noreferrer" class="item-name">${escapeHtml(item.name)}</a>
           <div class="item-source">${escapeHtml(item.source)}</div>
         </div>
         <div class="item-cost ${costClass}">${costHtml(item.cost)}</div>
