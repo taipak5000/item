@@ -107,6 +107,13 @@
     .item-badge.dye-yes { background: var(--green-bg); color: var(--green); }
     .item-badge.limited { background: var(--red-bg); color: var(--red); }
     .item-note { font-size: 11.5px; color: var(--text-2); margin-top: 6px; line-height: 1.5; }
+    .acquire-toggle { display: flex; gap: 6px; margin-top: 8px; }
+    .acquire-btn {
+      flex: 1; font-size: 11px; font-weight: 700; padding: 6px 8px; border-radius: var(--r-sm);
+      background: var(--bg); color: var(--text-2); border: 1px solid var(--sep); text-align: center;
+    }
+    .acquire-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .acquire-btn.active.free { background: var(--green); border-color: var(--green); }
 
     .summary-card {
       background: linear-gradient(135deg, var(--orange) 0%, var(--orange-d) 100%);
@@ -539,7 +546,7 @@ const ITEM_COST_DATA = {
     { id: 'outfit_098', name: '光修繕する開拓者　服', source: '光の修繕者の季節（季節精霊・過去）', cost: { type: 'unknown' }, dye: true },
     { id: 'outfit_099', name: '光修繕する優勝者　服', source: '光の修繕者の季節（季節精霊・過去）', cost: { type: 'unknown' }, dye: true },
     { id: 'outfit_100', name: '光修繕する光学者　服', source: '光の修繕者の季節（季節精霊・過去）', cost: { type: 'unknown' }, dye: true },
-    { id: 'outfit_101', name: 'カーニバルの旋舞家　服', source: 'カーニバルの季節（季節精霊・過去）', cost: { type: 'candle', value: 28, note: '英語版Wikiでは価格未掲載（Cost Unknown）ですが、28キャンドルという情報があります。' }, dye: true },
+    { id: 'outfit_101', name: 'カーニバルの旋舞家　服', source: 'カーニバルの季節（季節精霊・過去）', cost: { type: 'unknown' }, dye: true },
     { id: 'outfit_102', name: 'カーニバルの旅役者　服', source: 'カーニバルの季節（季節精霊・過去）', cost: { type: 'na', note: 'シーズンパス購入者向けの特典アイテムのため、個別のキャンドル/実額価格は設定されていません。' }, dye: true },
     { id: 'outfit_103', name: '来福の壁絵師スモック', source: '来福の日々', cost: { type: 'money', value: 1300 }, dye: true },
     { id: 'outfit_104', name: '来福竜の式服', source: '来福の日々', cost: { type: 'money', value: 1300 }, dye: true },
@@ -1408,6 +1415,21 @@ function extractSource(source) {
   const m = /^([^（(]+)/.exec(source);
   return m ? m[1].trim() : source;
 }
+const SEASON_ACQUIRE_KEY = 'seasonAcquireMode_v1';
+function loadSeasonAcquireMap() {
+  try { return JSON.parse(localStorage.getItem(SEASON_ACQUIRE_KEY)) || {}; }
+  catch (_) { return {}; }
+}
+function saveSeasonAcquireMap(map) {
+  localStorage.setItem(SEASON_ACQUIRE_KEY, JSON.stringify(map));
+}
+function setSeasonAcquire(itemId, mode) {
+  const map = loadSeasonAcquireMap();
+  map[itemId] = mode;
+  saveSeasonAcquireMap(map);
+  renderItems();
+}
+
 // 全カテゴリのアイテムを1つのリストにまとめ、各アイテムの所持状態も合わせて読み込む
 function getAllItems() {
   const all = [];
@@ -1417,6 +1439,22 @@ function getAllItems() {
       all.push({ ...item, owned: !!owned[item.id], catKey });
     });
   });
+
+  // 季節のペンダント（ネックレスの季節アルティメットギフト）を所持している季節を集計
+  const pendantOwnedSeasons = new Set();
+  all.forEach(item => {
+    if (item.catKey === 'necklace' && item.name.includes('ペンダント') && item.owned) {
+      pendantOwnedSeasons.add(extractSource(item.source));
+    }
+  });
+
+  const acquireMap = loadSeasonAcquireMap();
+  const acquireEligibleTypes = ['candle', 'starCandle', 'heart'];
+  all.forEach(item => {
+    item.seasonPendantOwned = pendantOwnedSeasons.has(extractSource(item.source)) && acquireEligibleTypes.includes(item.cost.type);
+    item.acquireMode = acquireMap[item.id] || 'revisit';
+  });
+
   return all;
 }
 
@@ -1444,6 +1482,15 @@ function renderItemCard(item, owned) {
   const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + '　Sky')}`;
   const imgSrc = `images/${item.catKey}/${item.id}.png`;
 
+  const showAcquireToggle = owned && item.seasonPendantOwned;
+  const isFree = showAcquireToggle && item.acquireMode === 'inSeason';
+  const costDisplay = isFree ? costHtml({ ...item.cost, value: 0 }) : costHtml(item.cost);
+  const acquireToggleHtml = showAcquireToggle ? `
+      <div class="acquire-toggle">
+        <button type="button" class="acquire-btn ${isFree ? 'active free' : ''}" onclick="setSeasonAcquire('${item.id}', 'inSeason')">季節中に入手（0扱い）</button>
+        <button type="button" class="acquire-btn ${!isFree ? 'active' : ''}" onclick="setSeasonAcquire('${item.id}', 'revisit')">季節外・再訪で入手（記載コスト）</button>
+      </div>` : '';
+
   return `
     <div class="item-card ${owned ? 'owned' : ''}">
       <div class="item-head">
@@ -1455,10 +1502,11 @@ function renderItemCard(item, owned) {
           <a href="${searchUrl}" target="_blank" rel="noopener noreferrer" class="item-name">${escapeHtml(item.name)}</a>
           <div class="item-source">${escapeHtml(item.source)}</div>
         </div>
-        <div class="item-cost ${costClass}">${costHtml(item.cost)}</div>
+        <div class="item-cost ${costClass}">${costDisplay}</div>
       </div>
       ${badges.length ? `<div class="item-badges">${badges.join('')}</div>` : ''}
       ${item.cost.note ? `<div class="item-note">※ ${escapeHtml(item.cost.note)}</div>` : ''}
+      ${acquireToggleHtml}
     </div>`;
 }
 
@@ -1530,6 +1578,7 @@ function renderSummary(items) {
   items.forEach(item => {
     if (!item.owned) return;
     ownedCount++;
+    if (item.seasonPendantOwned && item.acquireMode === 'inSeason') return; // 季節中入手扱いのためコスト計算から除外
     const cost = item.cost;
     if (cost.type === 'candle' && typeof cost.value === 'number') candleSum += cost.value;
     else if (cost.type === 'starCandle' && typeof cost.value === 'number') starCandleSum += cost.value;
