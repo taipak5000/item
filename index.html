@@ -648,6 +648,11 @@
     }
     .customize-cat-opt:hover { background: var(--bg); }
     .customize-cat-opt input { width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--orange); }
+    .customize-cat-icon {
+      width: 20px; height: 20px; flex-shrink: 0; font-size: 14px;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .customize-cat-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; display: block; }
     .customize-comment-input {
       width: 100%; box-sizing: border-box; border: 1px solid var(--sep);
       border-radius: var(--r-sm); padding: 10px 12px; font-size: 13.5px;
@@ -2062,7 +2067,7 @@ function openCustomizeModal() {
   document.getElementById('customizeCatGrid').innerHTML = CATS.map(cat => `
     <label class="customize-cat-opt">
       <input type="checkbox" value="${cat.key}" ${saved.cats.includes(cat.key) ? 'checked' : ''}>
-      ${catIconHtml(cat)} ${cat.name}
+      <span class="customize-cat-icon">${catIconHtml(cat)}</span> ${cat.name}
     </label>`).join('');
 
   document.getElementById('customizeComment').value = '';
