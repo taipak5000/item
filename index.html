@@ -621,6 +621,9 @@
       padding: 10px 14px; font-size: 13px; line-height: 1.6; text-align: center;
       margin-bottom: 14px; white-space: pre-wrap; word-break: break-word;
     }
+    .exp-date {
+      color: rgba(255,255,255,0.75); font-size: 10.5px; text-align: right; margin-top: 10px;
+    }
 
     /* ── 共有画像カスタマイズモーダル ─────────────── */
     .customize-section-label {
@@ -1020,7 +1023,7 @@
     <div class="customize-cat-grid" id="customizeCatGrid"><!-- JS --></div>
 
     <div class="customize-section-label">コメント（任意）</div>
-    <textarea id="customizeComment" class="customize-comment-input" maxlength="120" placeholder="画像に添えるひとこと（未入力の場合は通常の文言になります）"></textarea>
+    <textarea id="customizeComment" class="customize-comment-input" maxlength="120" placeholder="例）プレイヤーネーム：〇〇（未入力の場合は通常の文言になります）"></textarea>
 
     <div class="action-row" style="margin-top:16px;">
       <button class="action-btn primary full" onclick="saveOverallAsImage(true)">🖼️ この設定で画像保存</button>
@@ -2111,6 +2114,9 @@ function buildOverallExportCardEl(opts = {}) {
       </div>`;
   }).join('');
 
+  const today = new Date();
+  const dateTxt = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日作成`;
+
   const card = document.createElement('div');
   card.className = 'export-card';
   card.style.background = SHARE_THEMES[theme].grad;
@@ -2123,6 +2129,7 @@ function buildOverallExportCardEl(opts = {}) {
     </div>
     ${comment ? `<div class="exp-comment">${escapeHtml(comment)}</div>` : ''}
     ${cells ? `<div class="exp-cat-grid">${cells}</div>` : ''}
+    <div class="exp-date">${dateTxt}</div>
   `;
   document.body.appendChild(card);
   return card;
