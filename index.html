@@ -725,6 +725,23 @@
       vertical-align: -3px;
       margin-right: 1px;
     }
+
+    /* ── お気に入り共有：アイコンのみ表示グリッド ───── */
+    .exp-fav-icon-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+      background: #fff; border-radius: 18px; padding: 14px;
+    }
+    .exp-fav-icon-cell {
+      background: var(--bg); border-radius: 10px; aspect-ratio: 1;
+      overflow: hidden; display: flex; align-items: center; justify-content: center;
+    }
+    .exp-fav-icon-cell img { width: 100%; height: 100%; object-fit: contain; padding: 10%; box-sizing: border-box; display: block; }
+
+    /* ── お気に入り共有：アイテム選択リスト ───────── */
+    #favItemSelectList .customize-cat-opt { justify-content: flex-start; }
+    #favItemSelectList .customize-cat-opt span:last-child {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -1054,6 +1071,21 @@
       <span>💡</span>
       <span id="favShareCountText">読み込み中…</span>
     </div>
+
+    <div class="customize-section-label">表示スタイル</div>
+    <div class="action-row" style="margin-top:0;">
+      <button type="button" class="action-btn secondary" id="favStyleDetailBtn" onclick="setFavDisplayStyle('detail')">📋 詳細表示</button>
+      <button type="button" class="action-btn secondary" id="favStyleIconBtn" onclick="setFavDisplayStyle('icon')">🔳 アイコンのみ</button>
+    </div>
+
+    <div class="customize-section-label" style="display:flex; align-items:center; justify-content:space-between;">
+      <span>共有するアイテムを選択</span>
+      <span style="display:flex; gap:10px; text-transform:none; letter-spacing:normal;">
+        <span style="color:var(--blue); font-weight:600; cursor:pointer;" onclick="setAllFavSelection(true)">すべて選択</span>
+        <span style="color:var(--blue); font-weight:600; cursor:pointer;" onclick="setAllFavSelection(false)">すべて解除</span>
+      </span>
+    </div>
+    <div id="favItemSelectList" class="customize-cat-grid" style="max-height:240px; overflow-y:auto; padding-right:2px;"><!-- JS --></div>
 
     <div class="customize-section-label">コメント（任意）</div>
     <textarea id="favShareComment" class="customize-comment-input" maxlength="120" placeholder="例）今欲しいもの、〇〇系でよく使うアイテムなど"></textarea>
@@ -2219,14 +2251,29 @@ async function getFavoriteItems() {
   return allItemsCache.filter(item => getState(item.catKey).fav[item.id]);
 }
 
+// モーダルを開いている間だけ保持する状態（表示スタイルのみ次回に持ち越す）
+const FAV_SHARE_STYLE_KEY = 'favShareStyle_v1';
+let favShareStyle = localStorage.getItem(FAV_SHARE_STYLE_KEY) || 'detail';
+let favShareItems = [];
+let favShareSelectedIds = new Set();
+
+// カテゴリをまたいでもアイテムを一意に識別するためのキー
+function favItemKey(item) { return `${item.catKey}_${item.id}`; }
+
 async function openFavShare() {
   document.getElementById('favShareComment').value = '';
   document.getElementById('favShareCountText').textContent = '読み込み中…';
+  favShareItems = [];
+  favShareSelectedIds = new Set();
+  renderFavItemSelectList();
+  updateFavStyleButtons();
   openModal('favShareModal');
   try {
-    const favs = await getFavoriteItems();
-    document.getElementById('favShareCountText').textContent = favs.length > 0
-      ? `現在 ${favs.length}件のお気に入りアイテムがあります`
+    favShareItems = await getFavoriteItems();
+    favShareSelectedIds = new Set(favShareItems.map(favItemKey));
+    renderFavItemSelectList();
+    document.getElementById('favShareCountText').textContent = favShareItems.length > 0
+      ? `現在 ${favShareItems.length}件のお気に入りアイテムがあります`
       : 'お気に入り登録したアイテムがまだありません（検索画面の★ボタンで登録できます）';
   } catch (e) {
     console.error(e);
@@ -2235,19 +2282,74 @@ async function openFavShare() {
   }
 }
 
-function buildFavExportCardEl(items, comment) {
-  const rows = items.map(item => {
+// お気に入り一覧から共有対象を選ぶチェックリストを描画
+function renderFavItemSelectList() {
+  const listEl = document.getElementById('favItemSelectList');
+  if (favShareItems.length === 0) { listEl.innerHTML = ''; return; }
+  listEl.innerHTML = favShareItems.map(item => {
     const cat = CATS.find(c => c.key === item.catKey);
     if (!cat) return '';
+    const key = favItemKey(item);
+    const checked = favShareSelectedIds.has(key);
     return `
-      <div class="exp-row">
-        <div class="exp-icon">${itemIconHtml(cat, item)}</div>
-        <div class="exp-info">
-          <div class="exp-cat">${escapeHtml(cat.name)} ・ ${escapeHtml(item.event)}</div>
-          <div class="exp-name">${escapeHtml(item.name)}</div>
-        </div>
-      </div>`;
+      <label class="customize-cat-opt">
+        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleFavItemSelection('${key}', this.checked)">
+        <span class="customize-cat-icon">${itemIconHtml(cat, item)}</span>
+        <span>${escapeHtml(item.name)}</span>
+      </label>`;
   }).join('');
+}
+
+function toggleFavItemSelection(key, checked) {
+  if (checked) favShareSelectedIds.add(key);
+  else favShareSelectedIds.delete(key);
+}
+
+function setAllFavSelection(checked) {
+  favShareSelectedIds = checked ? new Set(favShareItems.map(favItemKey)) : new Set();
+  renderFavItemSelectList();
+}
+
+// 表示スタイル（詳細表示／アイコンのみ）：次回以降も同じ設定を使えるよう保存
+function setFavDisplayStyle(style) {
+  favShareStyle = style;
+  localStorage.setItem(FAV_SHARE_STYLE_KEY, style);
+  updateFavStyleButtons();
+}
+
+function updateFavStyleButtons() {
+  document.getElementById('favStyleDetailBtn').classList.toggle('fav-active', favShareStyle === 'detail');
+  document.getElementById('favStyleIconBtn').classList.toggle('fav-active', favShareStyle === 'icon');
+}
+
+function getSelectedFavItems() {
+  return favShareItems.filter(item => favShareSelectedIds.has(favItemKey(item)));
+}
+
+function buildFavExportCardEl(items, comment, style) {
+  let bodyHtml;
+  if (style === 'icon') {
+    const cells = items.map(item => {
+      const cat = CATS.find(c => c.key === item.catKey);
+      if (!cat) return '';
+      return `<div class="exp-fav-icon-cell">${itemIconHtml(cat, item)}</div>`;
+    }).join('');
+    bodyHtml = `<div class="exp-fav-icon-grid">${cells}</div>`;
+  } else {
+    const rows = items.map(item => {
+      const cat = CATS.find(c => c.key === item.catKey);
+      if (!cat) return '';
+      return `
+        <div class="exp-row">
+          <div class="exp-icon">${itemIconHtml(cat, item)}</div>
+          <div class="exp-info">
+            <div class="exp-cat">${escapeHtml(cat.name)} ・ ${escapeHtml(item.event)}</div>
+            <div class="exp-name">${escapeHtml(item.name)}</div>
+          </div>
+        </div>`;
+    }).join('');
+    bodyHtml = `<div class="exp-body">${rows}</div>`;
+  }
 
   const card = document.createElement('div');
   card.className = 'export-card';
@@ -2255,7 +2357,7 @@ function buildFavExportCardEl(items, comment) {
     <div class="exp-brand">🗂️ アイテム所持率管理</div>
     <div class="exp-title">⭐ お気に入りアイテム</div>
     ${comment ? `<div class="exp-comment">${escapeHtml(comment)}</div>` : ''}
-    <div class="exp-body">${rows}</div>
+    ${bodyHtml}
   `;
   document.body.appendChild(card);
   return card;
@@ -2267,28 +2369,28 @@ function buildFavShareText(comment) {
   return `⭐ お気に入りアイテムまとめ\n\n${SITE_URL}`;
 }
 
-async function saveFavAsImage() {
-  let favs;
-  try { favs = await getFavoriteItems(); } catch (e) { console.error(e); showToast('読み込みに失敗しました'); return; }
-  if (favs.length === 0) {
-    showToast('お気に入り登録したアイテムがありません');
+function saveFavAsImage() {
+  const selected = getSelectedFavItems();
+  if (selected.length === 0) {
+    showToast('共有するアイテムを1つ以上選択してください');
     return;
   }
   const comment = document.getElementById('favShareComment').value.trim();
+  const style = favShareStyle;
   closeModal('favShareModal');
-  return exportElementAsImage(() => buildFavExportCardEl(favs, comment), 'お気に入りアイテム');
+  return exportElementAsImage(() => buildFavExportCardEl(selected, comment, style), 'お気に入りアイテム');
 }
 
-async function shareFavOnTwitter() {
-  let favs;
-  try { favs = await getFavoriteItems(); } catch (e) { console.error(e); showToast('読み込みに失敗しました'); return; }
-  if (favs.length === 0) {
-    showToast('お気に入り登録したアイテムがありません');
+function shareFavOnTwitter() {
+  const selected = getSelectedFavItems();
+  if (selected.length === 0) {
+    showToast('共有するアイテムを1つ以上選択してください');
     return;
   }
   const comment = document.getElementById('favShareComment').value.trim();
+  const style = favShareStyle;
   closeModal('favShareModal');
-  return exportElementAsImage(() => buildFavExportCardEl(favs, comment), 'お気に入りアイテム', {
+  return exportElementAsImage(() => buildFavExportCardEl(selected, comment, style), 'お気に入りアイテム', {
     shareText: buildFavShareText(comment),
     successToast: '共有しました！'
   });
