@@ -109,6 +109,10 @@
       padding: 7px 12px; border-radius: 999px; transition: background 0.15s, color 0.15s;
     }
     .view-toggle-btn.active { background: var(--card); color: var(--text); font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+    .grid-cols-select {
+      background: var(--bg); border: none; padding: 6px 10px; border-radius: 999px;
+      font-size: 12px; color: var(--text-2); font-weight: 600; outline: none; flex-shrink: 0;
+    }
 
     /* ── Item Grid（画像タイル形式） ───────────────── */
     .item-grid {
@@ -334,9 +338,19 @@
     <!-- ▸ Item List Section -->
     <div class="list-header-row">
       <p class="sec-label" id="listLabel">アイテム一覧</p>
-      <div class="view-toggle" role="group" aria-label="表示切替">
-        <button type="button" class="view-toggle-btn" id="viewBtnGrid" onclick="setViewMode('grid')" aria-pressed="true">▦ グリッド</button>
-        <button type="button" class="view-toggle-btn" id="viewBtnList" onclick="setViewMode('list')" aria-pressed="false">☰ リスト</button>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <select class="grid-cols-select" id="gridColsSelect" onchange="setGridCols(this.value)" title="グリッドの列数" aria-label="グリッドの列数">
+          <option value="auto">列数: 自動</option>
+          <option value="2">2列</option>
+          <option value="3">3列</option>
+          <option value="4">4列</option>
+          <option value="5">5列</option>
+          <option value="6">6列</option>
+        </select>
+        <div class="view-toggle" role="group" aria-label="表示切替">
+          <button type="button" class="view-toggle-btn" id="viewBtnGrid" onclick="setViewMode('grid')" aria-pressed="true">▦ グリッド</button>
+          <button type="button" class="view-toggle-btn" id="viewBtnList" onclick="setViewMode('list')" aria-pressed="false">☰ リスト</button>
+        </div>
       </div>
     </div>
     <div class="item-grid" id="itemList">
@@ -562,6 +576,10 @@ let userStates = { owned: {}, fav: {} };
 const VIEW_MODE_KEY = 'gameItems_viewMode';
 let viewMode = localStorage.getItem(VIEW_MODE_KEY) || 'grid';
 
+// グリッドの列数（グリッド表示時のみ有効）：カテゴリページ共通の設定として保存
+const GRID_COLS_KEY = 'gameItems_gridCols';
+let gridCols = localStorage.getItem(GRID_COLS_KEY) || 'auto';
+
 // 初期化処理
 document.addEventListener('DOMContentLoaded', () => {
   // タイトル等UIの書き換え
@@ -575,7 +593,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ローカルストレージからユーザーデータを復元
   loadUserData();
   // 表示モード（グリッド／リスト）をボタン・コンテナに反映
-  updateViewToggleUI();  // イベントの絞り込みセレクトボックスを構築
+  updateViewToggleUI();
+  // グリッドの列数をコンテナ・セレクトボックスに反映
+  applyGridCols();  // イベントの絞り込みセレクトボックスを構築
   buildEventFilter();
   // アイテムリストの表示
   filterAndRender();
@@ -705,6 +725,21 @@ function updateViewToggleUI() {
   listBtn.setAttribute('aria-pressed', viewMode === 'list');
   container.classList.toggle('item-grid', viewMode === 'grid');
   container.classList.toggle('item-list', viewMode === 'list');
+}
+
+// グリッドの列数を切り替える（"自動"の場合は幅に応じた自動折り返しに戻す）
+function setGridCols(val) {
+  gridCols = val;
+  localStorage.setItem(GRID_COLS_KEY, val);
+  applyGridCols();
+}
+
+// 選択中の列数をグリッドコンテナ・セレクトボックスに反映
+function applyGridCols() {
+  const container = document.getElementById('itemList');
+  container.style.gridTemplateColumns = gridCols === 'auto' ? '' : `repeat(${gridCols}, 1fr)`;
+  const sel = document.getElementById('gridColsSelect');
+  if (sel) sel.value = gridCols;
 }
 
 // フィルター・ソートを適用してレンダリング
