@@ -1,5 +1,5 @@
 {
-  "name": "Skyドレスアップアイテム所持率管理",
+  "name": "アイテム所持率管理",
   "short_name": "Sky所持率管理",
   "start_url": "./index.html",
   "scope": "./",

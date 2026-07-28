@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Sky所持率管理">
   <meta name="theme-color" content="#FF9500">
-  <title>Skyドレスアップアイテム所持チェック</title>
+  <title>アイテム所持率管理</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* ── Design tokens ─────────────────────────── */
@@ -731,7 +731,7 @@
 
 <!-- ▸ Navigation bar -->
 <nav>
-  <div class="nav-title">🗂️ Skyドレスアップアイテム所持率管理</div>
+  <div class="nav-title">🗂️ アイテム所持率管理</div>
   <div style="display:flex; gap:10px; align-items:center;">
     <button class="sb-toggle-btn" onclick="toggleSidebar()">☰ ツール</button>
     <button class="nav-action" onclick="refreshData()">更新</button>
@@ -1137,12 +1137,15 @@ function pct(owned, total) {
 }
 
 /* ── Card HTML ─────────────────────────── */
-function cardHTML(cat, data) {
-  const p    = data ? pct(data.owned, data.total) : null;
+// data が無い（未登録）カテゴリでも、fallbackTotal（全アイテムキャッシュから求めた総数）が
+// わかっていれば「0 / 総数」を表示する。fallbackTotal も無い場合のみ「未登録」のまま
+function cardHTML(cat, data, fallbackTotal) {
+  const hasFallback = !data && typeof fallbackTotal === 'number' && fallbackTotal > 0;
+  const p    = data ? pct(data.owned, data.total) : (hasFallback ? 0 : null);
   const high = p !== null && p >= 80;
   const cls  = p === null ? 'empty' : high ? 'high' : '';
   const pTxt = p !== null ? p + '%' : '--';
-  const cTxt = data ? `${data.owned} / ${data.total}` : '未登録';
+  const cTxt = data ? `${data.owned} / ${data.total}` : (hasFallback ? `0 / ${fallbackTotal}` : '未登録');
 
   return `
     <a class="cat-card" href="${cat.file}">
@@ -1171,7 +1174,10 @@ function loadAndRender() {
   const html = CATS.map(c => {
     const d = readCat(c.key);
     if (d) { own += d.owned; tot += d.total; active++; }
-    return cardHTML(c, d);
+    const fallbackTotal = (!d && allItemsCache)
+      ? allItemsCache.filter(it => it.catKey === c.key).length
+      : null;
+    return cardHTML(c, d, fallbackTotal);
   }).join('');
 
   document.getElementById('catGrid').innerHTML = html;
@@ -1216,6 +1222,11 @@ preloadCatIcons();
 
 document.addEventListener('DOMContentLoaded', loadAndRender);
 document.addEventListener('DOMContentLoaded', buildCategoryFilterOptions);
+// 未登録カテゴリでも総アイテム数を表示できるよう、全カテゴリのデータをバックグラウンドで取得しておく
+// （取得できたら件数表示を更新。file:// で開いている等、失敗しても「未登録」表示に留まるだけなので無視してよい）
+document.addEventListener('DOMContentLoaded', () => {
+  loadAllItemsOnce().then(loadAndRender).catch(() => {});
+});
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) loadAndRender();
 });
@@ -1883,7 +1894,7 @@ function buildExportCardEl(title, items) {
   const card = document.createElement('div');
   card.className = 'export-card';
   card.innerHTML = `
-    <div class="exp-brand">🗂️ Skyドレスアップアイテム所持率管理</div>
+    <div class="exp-brand">🗂️ アイテム所持率管理</div>
     <div class="exp-title">${escapeHtml(title)}</div>
     <div class="exp-body">${rows}</div>
   `;
@@ -2154,7 +2165,7 @@ function buildOverallExportCardEl(opts = {}) {
   card.className = 'export-card';
   card.style.background = SHARE_THEMES[theme].grad;
   card.innerHTML = `
-    <div class="exp-brand">🗂️ Skyドレスアップアイテム所持率管理</div>
+    <div class="exp-brand">🗂️ アイテム所持率管理</div>
     <div class="exp-hero">
       <div class="exp-hero-pct">${pctTxt}</div>
       <div class="exp-hero-label">コレクション達成率</div>
@@ -2183,7 +2194,7 @@ function buildOverallTweetText(comment) {
   if (comment) return `${comment}\n\n${SITE_URL}`;
   const { own, tot, p } = getOverallStats();
   const pctTxt = p !== null ? p + '%' : '--%';
-  return `Skyドレスアップアイテム所持率は${pctTxt}でした！\n（所持中 ${own} ／ 総アイテム数 ${tot}）\nあなたは何%持ってる？✨\n\n${SITE_URL}`;
+  return `アイテム所持率は${pctTxt}でした！\n（所持中 ${own} ／ 総アイテム数 ${tot}）\nあなたは何%持ってる？✨\n\n${SITE_URL}`;
 }
 
 function shareOverallOnTwitter(fromCustomize) {
@@ -2241,7 +2252,7 @@ function buildFavExportCardEl(items, comment) {
   const card = document.createElement('div');
   card.className = 'export-card';
   card.innerHTML = `
-    <div class="exp-brand">🗂️ Skyドレスアップアイテム所持率管理</div>
+    <div class="exp-brand">🗂️ アイテム所持率管理</div>
     <div class="exp-title">⭐ お気に入りアイテム</div>
     ${comment ? `<div class="exp-comment">${escapeHtml(comment)}</div>` : ''}
     <div class="exp-body">${rows}</div>
