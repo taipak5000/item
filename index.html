@@ -854,6 +854,14 @@
     <span class="feature-desc">表示するカテゴリ・背景テーマ・コメントを自分好みに設定してから保存/共有できます</span>
   </button>
 
+  <!-- ▸ お気に入りシェア -->
+  <p class="sec-label">お気に入りをシェア</p>
+  <button class="feature-btn" onclick="openFavShare()">
+    <span class="feature-icon">⭐</span>
+    <span class="feature-label">お気に入りアイテムを共有</span>
+    <span class="feature-desc">★お気に入り登録したアイテムをコメント付きの画像で保存・共有できます</span>
+  </button>
+
   <!-- ▸ コーデ機能 -->
   <p class="sec-label">コーデ機能</p>
   <div class="feature-row">
@@ -1030,6 +1038,31 @@
     </div>
     <div class="action-row">
       <button class="action-btn twitter full" onclick="shareOverallOnTwitter(true)">📤 この設定でXへシェア</button>
+    </div>
+  </div>
+</div>
+
+<!-- ▸ お気に入り共有モーダル -->
+<div class="modal-overlay" id="favShareModal" onclick="if(event.target===this)closeModal('favShareModal')">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title">⭐ お気に入りを共有</span>
+      <button class="modal-close" onclick="closeModal('favShareModal')">✕</button>
+    </div>
+
+    <div class="hint" style="margin-top:0;">
+      <span>💡</span>
+      <span id="favShareCountText">読み込み中…</span>
+    </div>
+
+    <div class="customize-section-label">コメント（任意）</div>
+    <textarea id="favShareComment" class="customize-comment-input" maxlength="120" placeholder="例）今欲しいもの、〇〇系でよく使うアイテムなど"></textarea>
+
+    <div class="action-row" style="margin-top:16px;">
+      <button class="action-btn primary full" onclick="saveFavAsImage()">🖼️ 画像で保存</button>
+    </div>
+    <div class="action-row">
+      <button class="action-btn twitter full" onclick="shareFavOnTwitter()">📤 Xでシェア</button>
     </div>
   </div>
 </div>
@@ -2162,6 +2195,90 @@ function shareOverallOnTwitter(fromCustomize) {
   if (fromCustomize) closeModal('customizeModal');
   return exportElementAsImage(() => buildOverallExportCardEl(opts), 'コレクション達成率', {
     shareText: buildOverallTweetText(opts.comment),
+    successToast: '共有しました！'
+  });
+}
+
+// ── お気に入りアイテム: 画像保存・Xシェア ──────
+// 全カテゴリを横断して★お気に入り登録されているアイテムを集める（gsFav絞り込みと同じデータを使用）
+async function getFavoriteItems() {
+  await loadAllItemsOnce();
+  const stateCache = {};
+  const getState = catKey => stateCache[catKey] || (stateCache[catKey] = readCatState(catKey));
+  return allItemsCache.filter(item => getState(item.catKey).fav[item.id]);
+}
+
+async function openFavShare() {
+  document.getElementById('favShareComment').value = '';
+  document.getElementById('favShareCountText').textContent = '読み込み中…';
+  openModal('favShareModal');
+  try {
+    const favs = await getFavoriteItems();
+    document.getElementById('favShareCountText').textContent = favs.length > 0
+      ? `現在 ${favs.length}件のお気に入りアイテムがあります`
+      : 'お気に入り登録したアイテムがまだありません（検索画面の★ボタンで登録できます）';
+  } catch (e) {
+    console.error(e);
+    document.getElementById('favShareCountText').textContent =
+      '読み込みに失敗しました。GitHub Pages公開後のURLで開いているかご確認ください。';
+  }
+}
+
+function buildFavExportCardEl(items, comment) {
+  const rows = items.map(item => {
+    const cat = CATS.find(c => c.key === item.catKey);
+    if (!cat) return '';
+    return `
+      <div class="exp-row">
+        <div class="exp-icon">${itemIconHtml(cat, item)}</div>
+        <div class="exp-info">
+          <div class="exp-cat">${escapeHtml(cat.name)} ・ ${escapeHtml(item.event)}</div>
+          <div class="exp-name">${escapeHtml(item.name)}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const card = document.createElement('div');
+  card.className = 'export-card';
+  card.innerHTML = `
+    <div class="exp-brand">🗂️ Skyドレスアップアイテム所持率管理</div>
+    <div class="exp-title">⭐ お気に入りアイテム</div>
+    ${comment ? `<div class="exp-comment">${escapeHtml(comment)}</div>` : ''}
+    <div class="exp-body">${rows}</div>
+  `;
+  document.body.appendChild(card);
+  return card;
+}
+
+// お気に入り共有時のコメント文（未入力時は既定の文言、入力時はそちらを使う）
+function buildFavShareText(comment) {
+  if (comment) return `${comment}\n\n${SITE_URL}`;
+  return `⭐ お気に入りアイテムまとめ\n\n${SITE_URL}`;
+}
+
+async function saveFavAsImage() {
+  let favs;
+  try { favs = await getFavoriteItems(); } catch (e) { console.error(e); showToast('読み込みに失敗しました'); return; }
+  if (favs.length === 0) {
+    showToast('お気に入り登録したアイテムがありません');
+    return;
+  }
+  const comment = document.getElementById('favShareComment').value.trim();
+  closeModal('favShareModal');
+  return exportElementAsImage(() => buildFavExportCardEl(favs, comment), 'お気に入りアイテム');
+}
+
+async function shareFavOnTwitter() {
+  let favs;
+  try { favs = await getFavoriteItems(); } catch (e) { console.error(e); showToast('読み込みに失敗しました'); return; }
+  if (favs.length === 0) {
+    showToast('お気に入り登録したアイテムがありません');
+    return;
+  }
+  const comment = document.getElementById('favShareComment').value.trim();
+  closeModal('favShareModal');
+  return exportElementAsImage(() => buildFavExportCardEl(favs, comment), 'お気に入りアイテム', {
+    shareText: buildFavShareText(comment),
     successToast: '共有しました！'
   });
 }
