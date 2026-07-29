@@ -726,6 +726,13 @@
       margin-right: 1px;
     }
 
+    /* ── お気に入り共有：背景カスタマイズ ───────── */
+    .fav-bg-file-btn {
+      background: var(--bg); color: var(--text); font-size: 12.5px; font-weight: 600;
+      padding: 8px 14px; border-radius: 999px; cursor: pointer; display: inline-flex;
+      align-items: center; gap: 6px; flex-shrink: 0;
+    }
+
     /* ── お気に入り共有：アイコンのみ表示グリッド ───── */
     .exp-fav-icon-grid {
       display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
@@ -1076,6 +1083,19 @@
     <div class="action-row" style="margin-top:0;">
       <button type="button" class="action-btn secondary" id="favStyleDetailBtn" onclick="setFavDisplayStyle('detail')">📋 詳細表示</button>
       <button type="button" class="action-btn secondary" id="favStyleIconBtn" onclick="setFavDisplayStyle('icon')">🔳 アイコンのみ</button>
+    </div>
+
+    <div class="customize-section-label">背景テーマ</div>
+    <div class="theme-swatch-row" id="favThemeSwatchRow"><!-- JS --></div>
+
+    <div class="customize-section-label">背景画像（任意）</div>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <label class="fav-bg-file-btn">
+        🖼️ 画像を選ぶ
+        <input type="file" accept="image/*" id="favBgImageInput" style="display:none;" onchange="onFavBgImageSelected(event)">
+      </label>
+      <span id="favBgImageStatus" style="font-size:12px; color:var(--text-2);">未選択（テーマの色を使用）</span>
+      <span id="favBgImageClearBtn" style="display:none; color:var(--blue); font-weight:600; font-size:12px; cursor:pointer;" onclick="clearFavBgImage()">削除</span>
     </div>
 
     <div class="customize-section-label" style="display:flex; align-items:center; justify-content:space-between;">
@@ -1884,6 +1904,7 @@ function saveCreatedCoord() {
 
 // ⚠️ サイト公開URLが決まったらここを差し替えてください
 const SITE_URL = 'https://taipak5000.github.io/item/';
+const SHARE_HASHTAG = '#Skyアイテム所持率';
 
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({
@@ -2059,11 +2080,11 @@ function shareCoordImageOnX(title, items, filenameBase, shareText) {
 
 // コーデ共有時のコメント文（アイテムの列挙はしない。内容は画像側で見せる）
 function buildRandomShareText() {
-  return `🎲 ランダムコーデが決まりました！\n\n${SITE_URL}`;
+  return `🎲 ランダムコーデが決まりました！\n\n${SITE_URL}\n${SHARE_HASHTAG}`;
 }
 
 function buildMyCoordShareText(label) {
-  return `👗「${label}」のコーデ\n\n${SITE_URL}`;
+  return `👗「${label}」のコーデ\n\n${SITE_URL}\n${SHARE_HASHTAG}`;
 }
 
 // ── ランダムコーデ: 画像保存・Xシェア ──────────
@@ -2225,10 +2246,10 @@ function saveOverallAsImage(fromCustomize) {
 
 // 達成率からツイート本文を作成（文末に必ずサイトURLを付与。コメント指定時はそちらを使う）
 function buildOverallTweetText(comment) {
-  if (comment) return `${comment}\n\n${SITE_URL}`;
+  if (comment) return `${comment}\n\n${SITE_URL}\n${SHARE_HASHTAG}`;
   const { own, tot, p } = getOverallStats();
   const pctTxt = p !== null ? p + '%' : '--%';
-  return `アイテム所持率は${pctTxt}でした！\n（所持中 ${own} ／ 総アイテム数 ${tot}）\nあなたは何%持ってる？✨\n\n${SITE_URL}`;
+  return `アイテム所持率は${pctTxt}でした！\n（所持中 ${own} ／ 総アイテム数 ${tot}）\nあなたは何%持ってる？✨\n\n${SITE_URL}\n${SHARE_HASHTAG}`;
 }
 
 function shareOverallOnTwitter(fromCustomize) {
@@ -2253,11 +2274,14 @@ async function getFavoriteItems() {
   return allItemsCache.filter(item => getState(item.catKey).fav[item.id]);
 }
 
-// モーダルを開いている間だけ保持する状態（表示スタイルのみ次回に持ち越す）
+// モーダルを開いている間だけ保持する状態（表示スタイル・背景テーマのみ次回に持ち越す）
 const FAV_SHARE_STYLE_KEY = 'favShareStyle_v1';
+const FAV_SHARE_THEME_KEY = 'favShareTheme_v1';
 let favShareStyle = localStorage.getItem(FAV_SHARE_STYLE_KEY) || 'detail';
+let favShareTheme = (SHARE_THEMES[localStorage.getItem(FAV_SHARE_THEME_KEY)]) ? localStorage.getItem(FAV_SHARE_THEME_KEY) : 'orange';
 let favShareItems = [];
 let favShareSelectedIds = new Set();
+let favShareBgImageDataUrl = null; // 背景画像は都度選び直す想定のため保存はしない
 
 // カテゴリをまたいでもアイテムを一意に識別するためのキー
 function favItemKey(item) { return `${item.catKey}_${item.id}`; }
@@ -2267,8 +2291,10 @@ async function openFavShare() {
   document.getElementById('favShareCountText').textContent = '読み込み中…';
   favShareItems = [];
   favShareSelectedIds = new Set();
+  clearFavBgImage();
   renderFavItemSelectList();
   updateFavStyleButtons();
+  renderFavThemeSwatches();
   openModal('favShareModal');
   try {
     favShareItems = await getFavoriteItems();
@@ -2324,11 +2350,55 @@ function updateFavStyleButtons() {
   document.getElementById('favStyleIconBtn').classList.toggle('fav-active', favShareStyle === 'icon');
 }
 
+// 背景テーマ（色）：次回以降も同じ設定を使えるよう保存
+function renderFavThemeSwatches() {
+  document.getElementById('favThemeSwatchRow').innerHTML = Object.keys(SHARE_THEMES).map(key => `
+    <div class="theme-swatch ${key === favShareTheme ? 'selected' : ''}" data-theme="${key}"
+      style="background:${SHARE_THEMES[key].grad};" title="${SHARE_THEMES[key].label}"
+      onclick="selectFavShareTheme('${key}')"></div>`).join('');
+}
+
+function selectFavShareTheme(key) {
+  favShareTheme = key;
+  localStorage.setItem(FAV_SHARE_THEME_KEY, key);
+  document.querySelectorAll('#favThemeSwatchRow .theme-swatch').forEach(el => {
+    el.classList.toggle('selected', el.dataset.theme === key);
+  });
+}
+
+// 背景画像（任意）：選択した画像をdata URLとして保持し、指定中はテーマ色より優先して使う
+function onFavBgImageSelected(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('画像ファイルを選択してください');
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    favShareBgImageDataUrl = reader.result;
+    document.getElementById('favBgImageStatus').textContent = `選択中: ${file.name}`;
+    document.getElementById('favBgImageClearBtn').style.display = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearFavBgImage() {
+  favShareBgImageDataUrl = null;
+  const input = document.getElementById('favBgImageInput');
+  if (input) input.value = '';
+  const status = document.getElementById('favBgImageStatus');
+  if (status) status.textContent = '未選択（テーマの色を使用）';
+  const clearBtn = document.getElementById('favBgImageClearBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+}
+
 function getSelectedFavItems() {
   return favShareItems.filter(item => favShareSelectedIds.has(favItemKey(item)));
 }
 
-function buildFavExportCardEl(items, comment, style) {
+function buildFavExportCardEl(items, comment, style, theme, bgImageDataUrl) {
   let bodyHtml;
   if (style === 'icon') {
     const cells = items.map(item => {
@@ -2355,6 +2425,14 @@ function buildFavExportCardEl(items, comment, style) {
 
   const card = document.createElement('div');
   card.className = 'export-card';
+  if (bgImageDataUrl) {
+    // 背景画像を使う場合は、どんな写真でも文字が読めるよう暗めのオーバーレイを重ねる
+    card.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url("${bgImageDataUrl}")`;
+    card.style.backgroundSize = 'cover';
+    card.style.backgroundPosition = 'center';
+  } else {
+    card.style.background = SHARE_THEMES[theme] ? SHARE_THEMES[theme].grad : SHARE_THEMES.orange.grad;
+  }
   card.innerHTML = `
     <div class="exp-brand">🗂️ アイテム所持率管理</div>
     <div class="exp-title">⭐ お気に入りアイテム</div>
@@ -2367,8 +2445,8 @@ function buildFavExportCardEl(items, comment, style) {
 
 // お気に入り共有時のコメント文（未入力時は既定の文言、入力時はそちらを使う）
 function buildFavShareText(comment) {
-  if (comment) return `${comment}\n\n${SITE_URL}`;
-  return `⭐ お気に入りアイテムまとめ\n\n${SITE_URL}`;
+  if (comment) return `${comment}\n\n${SITE_URL}\n${SHARE_HASHTAG}`;
+  return `⭐ お気に入りアイテムまとめ\n\n${SITE_URL}\n${SHARE_HASHTAG}`;
 }
 
 function saveFavAsImage() {
@@ -2379,8 +2457,10 @@ function saveFavAsImage() {
   }
   const comment = document.getElementById('favShareComment').value.trim();
   const style = favShareStyle;
+  const theme = favShareTheme;
+  const bgImageDataUrl = favShareBgImageDataUrl;
   closeModal('favShareModal');
-  return exportElementAsImage(() => buildFavExportCardEl(selected, comment, style), 'お気に入りアイテム');
+  return exportElementAsImage(() => buildFavExportCardEl(selected, comment, style, theme, bgImageDataUrl), 'お気に入りアイテム');
 }
 
 function shareFavOnTwitter() {
@@ -2391,8 +2471,10 @@ function shareFavOnTwitter() {
   }
   const comment = document.getElementById('favShareComment').value.trim();
   const style = favShareStyle;
+  const theme = favShareTheme;
+  const bgImageDataUrl = favShareBgImageDataUrl;
   closeModal('favShareModal');
-  return exportElementAsImage(() => buildFavExportCardEl(selected, comment, style), 'お気に入りアイテム', {
+  return exportElementAsImage(() => buildFavExportCardEl(selected, comment, style, theme, bgImageDataUrl), 'お気に入りアイテム', {
     shareText: buildFavShareText(comment),
     successToast: '共有しました！'
   });
