@@ -53,24 +53,46 @@ const SEASON_NAME_EN = {
   '光の修繕者の季節': 'Season of Lightmending',
   'カーニバルの季節': 'Season of Carnival',
   '親愛なるファン・ゴッホへ': 'Dear Van Gogh',
-  // 日々（曜日イベント）
+  // 日々（曜日イベント）※すべて英語版Wikiで確認済み
   '来福の日々': 'Days of Fortune',
   '花笑む日々': 'Days of Bloom',
   '自然の日々': 'Days of Nature',
   '彩なす日々': 'Days of Color',
   'Skyアニバーサリー': 'Sky Anniversary',
   '陽光の日々': 'Days of Sunlight',
+  '月灯りの日々': 'Days of Moonlight',
   'いたずらな日々': 'Days of Mischief',
+  '分かち合いの日々': 'Days of Giving',
+  '聖なる星の日々': 'Days of Feast',
   '愛しみの日々': 'Days of Love',
+  '宝探しの日々': 'Days of Treasure',
   'お洒落な日々': 'Days of Style',
   '音楽の日々': 'Days of Music',
+  '凱旋の大競技会': 'Tournament of Triumph',
   // ── その他の共通ソース表記 ──
   '恒常精霊': 'Realm Spirits',
   '恒常精霊・過去': 'Realm Spirits (Past)',
+  '恒常究極': 'Realm Spirit (Ultimate)',
+  '常駐精霊': 'Realm Spirits',
   '季節精霊・過去': 'Traveling Spirit (Past)',
   '初期装備': 'Starting Item',
   '季節の存在・過去': 'Season Manifestation (Past)',
+  '季節の存在': 'Season Manifestation',
   '季節の案内人・究極の贈り物': 'Season Guide (Ultimate Gift)',
+  '季節の案内人': 'Season Guide',
+  'アルティメットギフト': 'Ultimate Gift',
+  'アドベンチャーパス': 'Adventure Pass',
+  'ペンダント': 'Pendant',
+  'デイズ限定': 'Days-event Exclusive',
+  'デイズ限定・過去開催': 'Days-event Exclusive (Past)',
+  '定期開催': 'Recurring',
+  '常設': 'Permanent',
+  '常設アイテム': 'Permanent Item',
+  '常設ショップ': 'Permanent Shop',
+  '復刻なし': 'No Re-release',
+  '期間限定・復刻なし': 'Limited-time, No Re-release',
+  '限定・復刻なし': 'Limited, No Re-release',
+  '条件付き': 'Conditional',
 };
 
 // カテゴリ名の日本語→英語対応表
@@ -85,6 +107,7 @@ const CAT_NAME_EN = {
   'ヘッドアクセサリー': 'Head Accessory',
   'ケープ': 'Cape',
   '持ち運べるアイテム': 'Props',
+  '持ち物アイテム': 'Props',
   '小さい設置アイテム': 'Small Placeable Items',
   '大きい設置アイテム': 'Large Placeable Items',
 };
@@ -93,6 +116,18 @@ const CAT_NAME_EN = {
 function trEvent(jpName) {
   if (CURRENT_LANG !== 'en') return jpName;
   return SEASON_NAME_EN[jpName] || jpName;
+}
+
+// item_cost.html等の "source" フィールド（例: "感謝の季節（季節精霊・過去）"）を翻訳する。
+// 本体と括弧内の注記をそれぞれ個別に変換し、英語訳が無い部分は日本語のまま残す。
+function trSource(source) {
+  if (CURRENT_LANG !== 'en') return source;
+  const m = /^([^（(]+)(?:[（(](.+)[）)])?$/.exec(source);
+  if (!m) return source;
+  const base = trEvent(m[1].trim());
+  if (!m[2]) return base;
+  const suffix = trEvent(m[2].trim());
+  return `${base} (${suffix})`;
 }
 
 // カテゴリ名を現在の言語に変換する
@@ -105,6 +140,12 @@ function trCat(jpName) {
 function trItemName(jpName, enMap, id) {
   if (CURRENT_LANG !== 'en') return jpName;
   return (enMap && enMap[id]) ? enMap[id] : jpName;
+}
+
+// item.nameEn（各カテゴリページのITEMS_DATAに直接持たせる英語名）を使う簡易版
+function trItem(item) {
+  if (CURRENT_LANG !== 'en') return item.name;
+  return item.nameEn || item.name;
 }
 
 // data-i18n-ja / data-i18n-en 属性を持つ要素のテキストを、現在の言語に応じて一括置換する

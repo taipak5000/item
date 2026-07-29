@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -50,6 +50,10 @@
     }
     .nav-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
     .nav-back { color: var(--blue); font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+    .nav-action {
+      background: var(--card); border: 1px solid var(--sep); border-radius: var(--r-sm);
+      padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--text);
+    }
 
     /* ── Layout ───────────────────────── */
     .app-layout { max-width: 720px; margin: 0 auto; padding: 0 16px; }
@@ -251,9 +255,9 @@
 
 <!-- ▸ Navigation bar -->
 <nav>
-  <a href="index.html" class="nav-back">◀ 総合メニュー</a>
+  <a href="index.html" class="nav-back" data-i18n-en="◀ Main Menu">◀ 総合メニュー</a>
   <div class="nav-title" id="pageTitle">アイテム所持チェック</div>
-  <div style="width:75px;"></div> <!-- バランス用スペース -->
+  <button class="nav-action" onclick="toggleLang()" id="langToggleBtn" data-i18n-en="日本語">EN</button>
 </nav>
 
 <!-- ▸ App layout -->
@@ -261,9 +265,9 @@
 
   <!-- Sidebar (総合メニューへの簡易リンク) -->
   <aside class="sidebar">
-    <div class="sidebar-section-label">🗂️ カテゴリメニュー</div>
+    <div class="sidebar-section-label" data-i18n-en="🗂️ Category Menu">🗂️ カテゴリメニュー</div>
     <nav>
-      <a href="index.html" class="sidebar-nav-link">🏠 総合メニューに戻る</a>
+      <a href="index.html" class="sidebar-nav-link" data-i18n-en="🏠 Back to Main Menu">🏠 総合メニューに戻る</a>
     </nav>
   </aside>
 
@@ -285,72 +289,72 @@
     <div class="control-panel">
       <!-- 名前検索 -->
       <div class="control-row">
-        <span class="control-label">名前検索</span>
-        <input type="text" class="select-box search-input" id="searchName" placeholder="🔍 アイテム名で絞り込み..." oninput="filterAndRender()">
+        <span class="control-label" data-i18n-en="Name Search">名前検索</span>
+        <input type="text" class="select-box search-input" id="searchName" placeholder="🔍 アイテム名で絞り込み..." data-i18n-en-placeholder="🔍 Filter by item name..." oninput="filterAndRender()">
       </div>
       <!-- 絞り込み -->
       <div class="control-row">
-        <span class="control-label">絞り込み</span>
+        <span class="control-label" data-i18n-en="Filter">絞り込み</span>
         <select class="select-box" id="filterStatus" onchange="filterAndRender()">
-          <option value="all">すべての所持状態</option>
-          <option value="owned">所持中のみ</option>
-          <option value="notOwned">未所持のみ</option>
+          <option value="all" data-i18n-en="All ownership states">すべての所持状態</option>
+          <option value="owned" data-i18n-en="Owned only">所持中のみ</option>
+          <option value="notOwned" data-i18n-en="Not owned only">未所持のみ</option>
         </select>
         <select class="select-box" id="filterFav" onchange="filterAndRender()">
-          <option value="all">すべてのお気に入り</option>
-          <option value="fav">★ お気に入り指定のみ</option>
+          <option value="all" data-i18n-en="All favorites">すべてのお気に入り</option>
+          <option value="fav" data-i18n-en="★ Favorites only">★ お気に入り指定のみ</option>
         </select>
       </div>
-      
+
       <!-- 条件別絞り込み -->
       <div class="control-row">
-        <span class="control-label">属性・条件</span>
+        <span class="control-label" data-i18n-en="Attributes">属性・条件</span>
         <select class="select-box" id="filterCost" onchange="filterAndRender()">
-          <option value="all">すべての入手方法（課金/無課金）</option>
-          <option value="free">無課金アイテム</option>
-          <option value="premium">課金アイテム</option>
+          <option value="all" data-i18n-en="All acquisition methods (paid/free)">すべての入手方法（課金/無課金）</option>
+          <option value="free" data-i18n-en="Free items">無課金アイテム</option>
+          <option value="premium" data-i18n-en="Paid items">課金アイテム</option>
         </select>
         <select class="select-box" id="filterDye" onchange="filterAndRender()">
-          <option value="all">すべての染色可否</option>
-          <option value="dye-o">染色 〇</option>
-          <option value="dye-x">染色 ✕</option>
+          <option value="all" data-i18n-en="All dye options">すべての染色可否</option>
+          <option value="dye-o" data-i18n-en="Dyeable">染色 〇</option>
+          <option value="dye-x" data-i18n-en="Not dyeable">染色 ✕</option>
         </select>
         <select class="select-box" id="filterReprint" onchange="filterAndRender()">
-          <option value="all">すべての復刻状態</option>
-          <option value="noReprint">復刻なし</option>
+          <option value="all" data-i18n-en="All re-release states">すべての復刻状態</option>
+          <option value="noReprint" data-i18n-en="No re-release">復刻なし</option>
         </select>
       </div>
 
       <!-- イベント名絞り込み ＆ 並び替え -->
       <div class="control-row">
-        <span class="control-label">その他</span>
+        <span class="control-label" data-i18n-en="Other">その他</span>
         <select class="select-box" id="filterEvent" onchange="filterAndRender()">
-          <option value="all">すべてのイベント・登場元</option>
+          <option value="all" data-i18n-en="All events/sources">すべてのイベント・登場元</option>
           <!-- JSで動的に追加されます -->
         </select>
         <select class="select-box" id="sortOrder" onchange="filterAndRender()">
-          <option value="default">並び替え: 標準</option>
-          <option value="nameAsc">アイテム名（昇順）</option>
-          <option value="event">イベント名順</option>
+          <option value="default" data-i18n-en="Sort: Default">並び替え: 標準</option>
+          <option value="nameAsc" data-i18n-en="Item Name (A-Z)">アイテム名（昇順）</option>
+          <option value="event" data-i18n-en="By Event Name">イベント名順</option>
         </select>
       </div>
     </div>
 
     <!-- ▸ Item List Section -->
     <div class="list-header-row">
-      <p class="sec-label" id="listLabel">アイテム一覧</p>
+      <p class="sec-label" id="listLabel" data-i18n-en="Item List">アイテム一覧</p>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <select class="grid-cols-select" id="gridColsSelect" onchange="setGridCols(this.value)" title="グリッドの列数" aria-label="グリッドの列数">
-          <option value="auto">列数: 自動</option>
-          <option value="2">2列</option>
-          <option value="3">3列</option>
-          <option value="4">4列</option>
-          <option value="5">5列</option>
-          <option value="6">6列</option>
+          <option value="auto" data-i18n-en="Columns: Auto">列数: 自動</option>
+          <option value="2" data-i18n-en="2 columns">2列</option>
+          <option value="3" data-i18n-en="3 columns">3列</option>
+          <option value="4" data-i18n-en="4 columns">4列</option>
+          <option value="5" data-i18n-en="5 columns">5列</option>
+          <option value="6" data-i18n-en="6 columns">6列</option>
         </select>
         <div class="view-toggle" role="group" aria-label="表示切替">
-          <button type="button" class="view-toggle-btn" id="viewBtnGrid" onclick="setViewMode('grid')" aria-pressed="true">▦ グリッド</button>
-          <button type="button" class="view-toggle-btn" id="viewBtnList" onclick="setViewMode('list')" aria-pressed="false">☰ リスト</button>
+          <button type="button" class="view-toggle-btn" id="viewBtnGrid" onclick="setViewMode('grid')" aria-pressed="true" data-i18n-en="▦ Grid">▦ グリッド</button>
+          <button type="button" class="view-toggle-btn" id="viewBtnList" onclick="setViewMode('list')" aria-pressed="false" data-i18n-en="☰ List">☰ リスト</button>
         </div>
       </div>
     </div>
@@ -361,6 +365,7 @@
   </div><!-- /wrap -->
 </div><!-- /.app-layout -->
 
+<script src="i18n.js"></script>
 <script>
 /* ==========================================================================
    🔧 設定エリア：作成するページに合わせてここを書き換えてください
@@ -512,9 +517,10 @@ let gridCols = localStorage.getItem(GRID_COLS_KEY) || 'auto';
 // 初期化処理
 document.addEventListener('DOMContentLoaded', () => {
   // タイトル等UIの書き換え
-  document.title = `${CAT_INFO.name}所持チェック - Sky所持率管理`;
-  document.getElementById('pageTitle').textContent = `🗂️ ${CAT_INFO.name}チェック`;
-  document.getElementById('catName').textContent = CAT_INFO.name;
+  const catNameTr = trCat(CAT_INFO.name);
+  document.title = CURRENT_LANG === 'en' ? `${catNameTr} Checklist - Item Collection Tracker` : `${CAT_INFO.name}所持チェック - Sky所持率管理`;
+  document.getElementById('pageTitle').textContent = CURRENT_LANG === 'en' ? `🗂️ ${catNameTr} Checklist` : `🗂️ ${CAT_INFO.name}チェック`;
+  document.getElementById('catName').textContent = catNameTr;
   document.getElementById('catIcon').innerHTML = CAT_INFO.img
     ? `<img src="${CAT_INFO.img}" alt="${CAT_INFO.name}" loading="lazy">`
     : CAT_INFO.icon;
@@ -576,7 +582,7 @@ function saveUserData() {
 // ヘッダーのスコア表示更新
 function updateHeaderScore(owned, total) {
   const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
-  document.getElementById('catCount').textContent = `${owned} / ${total} 所持`;
+  document.getElementById('catCount').textContent = CURRENT_LANG === 'en' ? `${owned} / ${total} owned` : `${owned} / ${total} 所持`;
   document.getElementById('catPct').textContent = `${pct}%`;
 }
 
@@ -609,7 +615,7 @@ function buildEventFilter() {
   events.forEach(ev => {
     const opt = document.createElement('option');
     opt.value = ev;
-    opt.textContent = ev;
+    opt.textContent = trEvent(ev);
     select.appendChild(opt);
   });
 }
@@ -711,7 +717,7 @@ function filterAndRender() {
   // 3. 出力 (Render)
   const listEl = document.getElementById('itemList');
   if (filtered.length === 0) {
-    listEl.innerHTML = `<div class="empty-message">該当するアイテムが見つかりません。</div>`;
+    listEl.innerHTML = `<div class="empty-message">${CURRENT_LANG === 'en' ? 'No matching items found.' : '該当するアイテムが見つかりません。'}</div>`;
     // 全体数は変わらないため初期ヘッダーだけ更新
     const total = ITEMS_DATA.length;
     const owned = ITEMS_DATA.filter(item => userStates.owned[item.id]).length;
@@ -733,7 +739,8 @@ function filterAndRender() {
   const renderItemGrid = (item) => {
     const { isOwned, isFav, wikiUrl, imgSrc } = getItemViewData(item);
     // タップ長押し等で全情報を確認できるツールチップ
-    const tip = [item.name, item.event, item.cost === 'premium' ? '課金' : '無課金', `染色${item.dye ? '〇' : '✕'}`, item.noReprint ? '復刻なし' : '']
+    const en = CURRENT_LANG === 'en';
+    const tip = [item.name, trEvent(item.event), item.cost === 'premium' ? (en ? 'Paid' : '課金') : (en ? 'Free' : '無課金'), en ? `Dye ${item.dye ? 'Yes' : 'No'}` : `染色${item.dye ? '〇' : '✕'}`, item.noReprint ? (en ? 'No Re-release' : '復刻なし') : '']
       .filter(Boolean).join(' ／ ');
 
     return `
@@ -742,7 +749,7 @@ function filterAndRender() {
           ${item.cost === 'premium' ? '<span class="tile-cost-dot" aria-hidden="true"></span>' : ''}
           ${item.noReprint ? '<span class="tile-nr-badge">NR</span>' : ''}
           <!-- お気に入りボタン（タイル選択とバブリングしないようストップ） -->
-          <button class="tile-fav-btn ${isFav ? 'is-fav' : ''}" onclick="event.stopPropagation(); toggleFav('${item.id}', this)" aria-label="お気に入り">${isFav ? '★' : '☆'}</button>
+          <button class="tile-fav-btn ${isFav ? 'is-fav' : ''}" onclick="event.stopPropagation(); toggleFav('${item.id}', this)" aria-label="${CURRENT_LANG === 'en' ? 'Favorite' : 'お気に入り'}">${isFav ? '★' : '☆'}</button>
           <div class="item-tile-img-wrap">
             <!-- 画像が未配置の場合は onerror でプレースホルダーアイコンに切り替え -->
             <img src="${imgSrc}" alt="${item.name}" loading="lazy" onerror="this.parentElement.classList.add('img-fallback')">
@@ -775,10 +782,10 @@ function filterAndRender() {
               ${item.name} 🔗
             </a>
             <div class="item-meta-row">
-              <span class="badge">${item.event}</span>
-              <span class="badge ${item.cost === 'premium' ? 'premium' : 'free'}">${item.cost === 'premium' ? '課金' : '無課金'}</span>
-              <span class="badge ${item.dye ? 'dye-o' : ''}">染色 ${item.dye ? '〇' : '✕'}</span>
-              ${item.noReprint ? `<span class="badge no-reprint">復刻なし</span>` : ''}
+              <span class="badge">${trEvent(item.event)}</span>
+              <span class="badge ${item.cost === 'premium' ? 'premium' : 'free'}">${item.cost === 'premium' ? (CURRENT_LANG === 'en' ? 'Paid' : '課金') : (CURRENT_LANG === 'en' ? 'Free' : '無課金')}</span>
+              <span class="badge ${item.dye ? 'dye-o' : ''}">${CURRENT_LANG === 'en' ? `Dye ${item.dye ? 'Yes' : 'No'}` : `染色 ${item.dye ? '〇' : '✕'}`}</span>
+              ${item.noReprint ? `<span class="badge no-reprint">${CURRENT_LANG === 'en' ? 'No Re-release' : '復刻なし'}</span>` : ''}
             </div>
           </div>
         </div>
@@ -802,7 +809,7 @@ function filterAndRender() {
   if (onesieItems.length > 0) {
     // 両グループが混在するときだけ区切り線を表示
     if (outfitItems.length > 0) {
-      html += `<div class="onesie-divider"><span>🧸 ワンジー</span></div>`;
+      html += `<div class="onesie-divider"><span>🧸 ${CURRENT_LANG === 'en' ? 'Onesies' : 'ワンジー'}</span></div>`;
     }
     html += onesieItems.map(renderItem).join('');
   }
@@ -817,9 +824,15 @@ function filterAndRender() {
 </script>
 
 <footer style="text-align:center; padding:24px 16px; color:var(--text-2); font-size:13px; border-top:1px solid var(--sep); margin-top:40px; line-height:1.6;">
-  このサイトはSky 星を紡ぐ子どもたちの非公式ファンサイトです。thatgamecompanyは一切関与していません。<br>
-  作成・ご意見: <a href="https://x.com/Skyzztai" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none; font-weight:bold;">@Skyzztai</a>　／　<a href="https://odaibako.net/u/Skyzztai" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none; font-weight:bold;">リクエストフォーム</a><br>
-  <span style="color:var(--text-2); font-size:12px; margin-top:4px; display:inline-block;">
+  <span data-i18n-en="This is an unofficial fan site for Sky: Children of the Light. thatgamecompany is not involved in any way.">このサイトはSky 星を紡ぐ子どもたちの非公式ファンサイトです。thatgamecompanyは一切関与していません。</span><br>
+  <span data-i18n-en-html='Created by / feedback: <a href="https://x.com/Skyzztai" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none; font-weight:bold;">@Skyzztai</a>&nbsp;&nbsp;/&nbsp;&nbsp;<a href="https://odaibako.net/u/Skyzztai" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none; font-weight:bold;">Request form</a>'>
+  作成・ご意見: <a href="https://x.com/Skyzztai" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none; font-weight:bold;">@Skyzztai</a>　／　<a href="https://odaibako.net/u/Skyzztai" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none; font-weight:bold;">リクエストフォーム</a>
+  </span><br>
+  <span style="color:var(--text-2); font-size:12px; margin-top:4px; display:inline-block;"
+    data-i18n-en-html='References / image sources:
+    <a href="https://sky-children-of-the-light.fandom.com/ja/wiki/%E3%82%A2%E3%82%A6%E3%83%88%E3%83%95%E3%82%A3%E3%83%83%E3%83%88" target="_blank" rel="noopener noreferrer" style="color: var(--blue);">Outfits (Sky Wiki Japanese)</a>
+    /
+    <a href="https://sky-children-of-the-light.fandom.com/wiki/Outfits" target="_blank" rel="noopener noreferrer" style="color: var(--blue);">Outfits (Sky Wiki English)</a>'>
     参考・画像引用元:
     <a href="https://sky-children-of-the-light.fandom.com/ja/wiki/%E3%82%A2%E3%82%A6%E3%83%88%E3%83%95%E3%82%A3%E3%83%83%E3%83%88" target="_blank" rel="noopener noreferrer" style="color: var(--blue);">アウトフィット (Sky Wiki 日本語)</a>
     ／
