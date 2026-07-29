@@ -755,10 +755,11 @@
 
 <!-- ▸ Navigation bar -->
 <nav>
-  <div class="nav-title">🗂️ アイテム所持率管理</div>
+  <div class="nav-title" data-i18n-en="🗂️ Item Collection Tracker">🗂️ アイテム所持率管理</div>
   <div style="display:flex; gap:10px; align-items:center;">
-    <button class="sb-toggle-btn" onclick="toggleSidebar()">☰ ツール</button>
-    <button class="nav-action" onclick="refreshData()">更新</button>
+    <button class="sb-toggle-btn" data-i18n-en="☰ Tools" onclick="toggleSidebar()">☰ ツール</button>
+    <button class="nav-action" onclick="toggleLang()" id="langToggleBtn" data-i18n-en="日本語">EN</button>
+    <button class="nav-action" data-i18n-en="Refresh" onclick="refreshData()">更新</button>
   </div>
 </nav>
 
@@ -1119,6 +1120,7 @@
   </div>
 </div>
 
+<script src="i18n.js"></script>
 <script>
 /* ── Category list ──────────────────────── */
 const CATS = [
@@ -1204,7 +1206,7 @@ function cardHTML(cat, data, fallbackTotal) {
       <div class="cat-top">
         <div class="cat-icon-wrap">
           <div class="cat-icon">${catIconHtml(cat)}</div>
-          <div class="cat-name">${cat.name}</div>
+          <div class="cat-name">${trCat(cat.name)}</div>
         </div>
         <span class="cat-pct ${cls}">${pTxt}</span>
       </div>

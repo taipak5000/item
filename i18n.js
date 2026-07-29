@@ -1,0 +1,128 @@
+/* ================================================================
+   共通 i18n（言語切り替え）ユーティリティ
+   全ページから <script src="i18n.js"></script> で読み込んで使う。
+   ================================================================ */
+
+const SITE_LANG_KEY = 'siteLang';
+
+function getLang() {
+  const v = localStorage.getItem(SITE_LANG_KEY);
+  return v === 'en' ? 'en' : 'ja';
+}
+
+function setLang(lang) {
+  localStorage.setItem(SITE_LANG_KEY, lang === 'en' ? 'en' : 'ja');
+  location.reload();
+}
+
+function toggleLang() {
+  setLang(getLang() === 'ja' ? 'en' : 'ja');
+}
+
+const CURRENT_LANG = getLang();
+
+// 季節・日々・コラボイベント名の日本語→英語対応表（Sky公式Wiki英語版に準拠）
+const SEASON_NAME_EN = {
+  '感謝の季節': 'Season of Gratitude',
+  '光の探求者の季節': 'Season of Lightseekers',
+  '想いを編む季節': 'Season of Belonging',
+  'リズムが弾ける季節': 'Season of Rhythm',
+  '魔法の季節': 'Season of Enchantment',
+  '楽園の季節': 'Season of Sanctuary',
+  '預言者の季節': 'Season of Prophecy',
+  '夢かなう季節': 'Season of Dreams',
+  '大樹に集う季節': 'Season of Assembly',
+  '星の王子さまの季節': 'Season of The Little Prince',
+  '羽ばたく季節': 'Season of Flight',
+  '深淵の季節': 'Season of Abyss',
+  '表現者たちの季節': 'Season of Performance',
+  '砕ケル闇ノ季節': 'Season of Shattering',
+  'AURORAの季節': 'Season of AURORA',
+  '追慕の季節': 'Season of Remembrance',
+  'ならいの季節': 'Season of Passage',
+  '瞬きの季節': 'Season of Moments',
+  '復古の季節': 'Season of Revival',
+  '九色の鹿の季節': 'Season of the Nine-Colored Deer',
+  '巣づくりの季節': 'Season of Nesting',
+  '重なる音色の季節': 'Season of Duets',
+  'ムーミンの季節': 'Season of Moomin',
+  '光に染まる季節': 'Season of Radiance',
+  '青い鳥の季節': 'Season of the Blue Bird',
+  'ふたつの灯火の季節　前編': 'Season of The Two Embers - Part 1',
+  '渡りの季節': 'Season of Migration',
+  '光の修繕者の季節': 'Season of Lightmending',
+  'カーニバルの季節': 'Season of Carnival',
+  '親愛なるファン・ゴッホへ': 'Dear Van Gogh',
+  // 日々（曜日イベント）
+  '来福の日々': 'Days of Fortune',
+  '花笑む日々': 'Days of Bloom',
+  '自然の日々': 'Days of Nature',
+  '彩なす日々': 'Days of Color',
+  'Skyアニバーサリー': 'Sky Anniversary',
+  '陽光の日々': 'Days of Sunlight',
+  'いたずらな日々': 'Days of Mischief',
+  '愛しみの日々': 'Days of Love',
+  'お洒落な日々': 'Days of Style',
+  '音楽の日々': 'Days of Music',
+  // ── その他の共通ソース表記 ──
+  '恒常精霊': 'Realm Spirits',
+  '恒常精霊・過去': 'Realm Spirits (Past)',
+  '季節精霊・過去': 'Traveling Spirit (Past)',
+  '初期装備': 'Starting Item',
+  '季節の存在・過去': 'Season Manifestation (Past)',
+  '季節の案内人・究極の贈り物': 'Season Guide (Ultimate Gift)',
+};
+
+// カテゴリ名の日本語→英語対応表
+const CAT_NAME_EN = {
+  'アウトフィット': 'Outfit',
+  'シューズ': 'Shoes',
+  'マスク': 'Mask',
+  'フェイスアクセサリー': 'Face Accessory',
+  'ネックレス': 'Necklace',
+  'ヘアスタイル': 'Hairstyle',
+  'ヘアアクセサリー': 'Hair Accessory',
+  'ヘッドアクセサリー': 'Head Accessory',
+  'ケープ': 'Cape',
+  '持ち運べるアイテム': 'Props',
+  '小さい設置アイテム': 'Small Placeable Items',
+  '大きい設置アイテム': 'Large Placeable Items',
+};
+
+// 季節・日々・イベント名を現在の言語に変換する（英語表記が無ければ日本語のまま返す）
+function trEvent(jpName) {
+  if (CURRENT_LANG !== 'en') return jpName;
+  return SEASON_NAME_EN[jpName] || jpName;
+}
+
+// カテゴリ名を現在の言語に変換する
+function trCat(jpName) {
+  if (CURRENT_LANG !== 'en') return jpName;
+  return CAT_NAME_EN[jpName] || jpName;
+}
+
+// アイテム名を現在の言語に変換する（英語名マップが無い/未収録なら日本語のまま返す）
+function trItemName(jpName, enMap, id) {
+  if (CURRENT_LANG !== 'en') return jpName;
+  return (enMap && enMap[id]) ? enMap[id] : jpName;
+}
+
+// data-i18n-ja / data-i18n-en 属性を持つ要素のテキストを、現在の言語に応じて一括置換する
+// （ページ読み込み時に一度呼ぶだけでよい静的なUI文言向け）
+function applyStaticI18n() {
+  if (CURRENT_LANG !== 'en') return;
+  document.querySelectorAll('[data-i18n-en]').forEach(el => {
+    el.textContent = el.getAttribute('data-i18n-en');
+  });
+  document.querySelectorAll('[data-i18n-en-html]').forEach(el => {
+    el.innerHTML = el.getAttribute('data-i18n-en-html');
+  });
+  document.querySelectorAll('[data-i18n-en-placeholder]').forEach(el => {
+    el.setAttribute('placeholder', el.getAttribute('data-i18n-en-placeholder'));
+  });
+  document.querySelectorAll('[data-i18n-en-title]').forEach(el => {
+    el.setAttribute('title', el.getAttribute('data-i18n-en-title'));
+  });
+}
+
+document.addEventListener('DOMContentLoaded', applyStaticI18n);
