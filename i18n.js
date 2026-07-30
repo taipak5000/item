@@ -93,6 +93,7 @@ const SEASON_NAME_EN = {
   '期間限定・復刻なし': 'Limited-time, No Re-release',
   '限定・復刻なし': 'Limited, No Re-release',
   '条件付き': 'Conditional',
+  'AURORAアンコール・コンサート': 'AURORA Encore Concerts',
 };
 
 // カテゴリ名の日本語→英語対応表
