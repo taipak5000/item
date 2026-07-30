@@ -132,6 +132,11 @@ function pfInjectStyle() {
     .pf-hint { font-size: 11.5px; color: var(--text-2); line-height: 1.5; margin: 12px 0 0; }
     .pf-close-btn { display: block; width: 100%; margin-top: 16px; background: var(--bg); border: 1px solid var(--sep);
       color: var(--text); border-radius: var(--r-sm); padding: 10px; font-size: 14px; cursor: pointer; }
+    .pf-row-input { flex: 1; background: var(--bg); border: 1px solid var(--blue); border-radius: 6px;
+      padding: 6px 8px; font-size: 14px; color: var(--text); font-family: inherit; outline: none; box-sizing: border-box; min-width: 0; }
+    .pf-row-confirm-text { flex: 1; font-size: 13px; color: var(--text); line-height: 1.4; }
+    .pf-row-btn-ok { background: var(--blue); color: #fff; border: none; }
+    .pf-row-btn-danger { background: #ff3b30; color: #fff; border: none; }
   `;
   document.head.appendChild(style);
 }
@@ -151,11 +156,20 @@ function escapeHtmlPf(str) {
   return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
+// 名前変更中・削除確認中のプロフィールID（ポップアップブロックの影響を受ける
+// prompt()/confirm() は使わず、モーダル内にインラインで表示する）
+let pfEditingId = null;
+let pfDeletingId = null;
+
 function pfOpenModal() {
+  pfEditingId = null;
+  pfDeletingId = null;
   pfRenderModal();
   document.getElementById('pfModalOverlay').classList.add('open');
 }
 function pfCloseModal() {
+  pfEditingId = null;
+  pfDeletingId = null;
   document.getElementById('pfModalOverlay').classList.remove('open');
 }
 
@@ -164,16 +178,44 @@ function pfRenderModal() {
   const activeId = getActiveProfileId();
   const rows = list.map(p => {
     const isActive = p.id === activeId;
-    const nameEsc = escapeHtmlPf(p.name).replace(/'/g, "\\'");
+
+    if (pfEditingId === p.id) {
+      const nameEsc = escapeHtmlPf(p.name);
+      return `
+        <div class="pf-row">
+          <input type="text" class="pf-row-input" id="pfEditInput" value="${nameEsc}" maxlength="30"
+            onkeydown="if(event.key==='Enter') pfConfirmRenameInline('${p.id}'); if(event.key==='Escape') pfCancelRowState();">
+          <button type="button" class="pf-icon-btn pf-row-btn-ok" onclick="pfConfirmRenameInline('${p.id}')">${pfT('保存','Save')}</button>
+          <button type="button" class="pf-icon-btn" onclick="pfCancelRowState()">${pfT('取消','Cancel')}</button>
+        </div>`;
+    }
+
+    if (pfDeletingId === p.id) {
+      return `
+        <div class="pf-row" style="flex-wrap: wrap;">
+          <span class="pf-row-confirm-text">${pfT(
+            `「${escapeHtmlPf(p.name)}」を削除しますか？（一覧からの削除のみで、保存済みデータはブラウザ内に残ります）`,
+            `Delete "${escapeHtmlPf(p.name)}"? (This only removes it from the list — its saved data stays in this browser.)`
+          )}</span>
+          <button type="button" class="pf-icon-btn pf-row-btn-danger" onclick="pfConfirmDeleteInline('${p.id}')">${pfT('削除','Delete')}</button>
+          <button type="button" class="pf-icon-btn" onclick="pfCancelRowState()">${pfT('取消','Cancel')}</button>
+        </div>`;
+    }
+
     return `
       <div class="pf-row ${isActive ? 'active' : ''}">
         <span class="pf-row-name" onclick="switchProfile('${p.id}')">${isActive ? '✅ ' : ''}${escapeHtmlPf(p.name)}</span>
-        <button type="button" class="pf-icon-btn" title="${pfT('名前を変更','Rename')}" onclick="pfPromptRename('${p.id}', '${nameEsc}')">✏️</button>
-        ${list.length > 1 ? `<button type="button" class="pf-icon-btn" title="${pfT('削除','Delete')}" onclick="pfConfirmDelete('${p.id}', '${nameEsc}')">🗑️</button>` : ''}
+        <button type="button" class="pf-icon-btn" title="${pfT('名前を変更','Rename')}" onclick="pfStartRename('${p.id}')">✏️</button>
+        ${list.length > 1 ? `<button type="button" class="pf-icon-btn" title="${pfT('削除','Delete')}" onclick="pfStartDelete('${p.id}')">🗑️</button>` : ''}
       </div>`;
   }).join('');
 
   document.getElementById('pfModalBody').innerHTML = `<div>${rows}</div>`;
+
+  if (pfEditingId !== null) {
+    const input = document.getElementById('pfEditInput');
+    if (input) { input.focus(); input.select(); }
+  }
 }
 
 function pfAddProfile() {
@@ -181,18 +223,38 @@ function pfAddProfile() {
   createProfile(input.value);
 }
 
-function pfPromptRename(id, currentName) {
-  const next = prompt(pfT('新しいプロフィール名を入力してください', 'Enter a new profile name'), currentName);
-  if (next === null) return;
-  renameProfile(id, next);
+function pfStartRename(id) {
+  pfDeletingId = null;
+  pfEditingId = id;
+  pfRenderModal();
 }
 
-function pfConfirmDelete(id, name) {
-  const ok = confirm(pfT(
-    `プロフィール「${name}」を削除しますか？（このプロフィールの選択自体を削除するだけで、保存済みデータはブラウザ内に残ります）`,
-    `Delete profile "${name}"? (This only removes it from the list — its saved data stays in this browser.)`
-  ));
-  if (ok) deleteProfile(id);
+function pfStartDelete(id) {
+  pfEditingId = null;
+  pfDeletingId = id;
+  pfRenderModal();
+}
+
+function pfCancelRowState() {
+  pfEditingId = null;
+  pfDeletingId = null;
+  pfRenderModal();
+}
+
+function pfConfirmRenameInline(id) {
+  const input = document.getElementById('pfEditInput');
+  const next = input ? input.value : '';
+  pfEditingId = null;
+  if (next && next.trim()) {
+    renameProfile(id, next);
+  } else {
+    pfRenderModal();
+  }
+}
+
+function pfConfirmDeleteInline(id) {
+  pfDeletingId = null;
+  deleteProfile(id);
 }
 
 function pfInit() {
