@@ -512,6 +512,10 @@
     }
     .coord-icon-btn:active { background: var(--sep); }
     .coord-del      { color: var(--text-3); }
+    .coord-photo-thumb {
+      width: 24px; height: 24px; border-radius: 7px; object-fit: cover;
+      flex-shrink: 0; cursor: pointer;
+    }
     .coord-rows     { display: flex; flex-direction: column; gap: 5px; }
     .coord-item-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
     .coord-cat      { color: var(--text-2); width: 110px; flex-shrink: 0; font-size: 12px; }
@@ -594,6 +598,10 @@
     .exp-info { flex: 1; min-width: 0; }
     .exp-cat  { font-size: 10.5px; color: var(--text-2); }
     .exp-name { font-size: 13.5px; font-weight: 600; color: var(--text); margin-top: 1px; }
+    .exp-photo {
+      display: block; width: 100%; max-height: 340px; object-fit: cover;
+      border-radius: 18px; margin-bottom: 14px; box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    }
 
     .exp-hero { text-align: center; padding: 6px 0 18px; }
     .exp-hero-pct {
@@ -1118,6 +1126,33 @@
     </div>
     <div class="action-row">
       <button class="action-btn twitter full" onclick="shareFavOnTwitter()" data-i18n-en="📤 Share on X">📤 Xでシェア</button>
+    </div>
+  </div>
+</div>
+
+<!-- ▸ マイコーデ：写真を添付 -->
+<div class="modal-overlay" id="coordPhotoModal" onclick="if(event.target===this)closeModal('coordPhotoModal')">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title" data-i18n-en="📷 Attach a Photo">📷 写真を添付</span>
+      <button class="modal-close" onclick="closeModal('coordPhotoModal')">✕</button>
+    </div>
+
+    <div class="hint" style="margin-top:0;" data-i18n-en="Attach a photo (e.g. yourself wearing the outfit) to embed in the image generated for this coord.">このコーデの画像を生成するときに埋め込む写真（実際に着ている写真など）を選べます。</div>
+
+    <img id="coordPhotoPreview" src="" alt="" style="display:none; width:100%; max-height:280px; object-fit:cover; border-radius:14px; margin-top:12px;">
+
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:12px;">
+      <label class="fav-bg-file-btn">
+        <span data-i18n-en="🖼️ Choose Photo">🖼️ 写真を選ぶ</span>
+        <input type="file" accept="image/*" id="coordPhotoInput" style="display:none;" onchange="onCoordPhotoSelected(event)">
+      </label>
+      <span id="coordPhotoStatus" style="font-size:12px; color:var(--text-2);" data-i18n-en="Not selected">未選択</span>
+      <span id="coordPhotoClearBtn" style="display:none; color:var(--blue); font-weight:600; font-size:12px; cursor:pointer;" onclick="clearCoordPhoto()" data-i18n-en="Remove">削除</span>
+    </div>
+
+    <div class="action-row" style="margin-top:16px;">
+      <button class="action-btn primary full" onclick="closeModal('coordPhotoModal')" data-i18n-en="Done">閉じる</button>
     </div>
   </div>
 </div>
@@ -1825,6 +1860,8 @@ function renderMyCoordList() {
         <div class="coord-header">
           <div class="coord-title">👗 ${escapeHtml(set.name)}</div>
           <div class="coord-actions">
+            ${set.photoDataUrl ? `<img class="coord-photo-thumb" src="${set.photoDataUrl}" alt="" onclick="openCoordPhotoModal(${set.id})" title="${CURRENT_LANG === 'en' ? 'Change Photo' : '写真を変更'}">` : ''}
+            <button class="coord-icon-btn" onclick="openCoordPhotoModal(${set.id})" title="${CURRENT_LANG === 'en' ? 'Attach a Photo' : '写真を添付'}">📷</button>
             <button class="coord-icon-btn" onclick="saveMyCoordAsImage(${set.id})" title="${CURRENT_LANG === 'en' ? 'Save as Image' : '画像で保存'}">🖼️</button>
             <button class="coord-icon-btn" onclick="shareMyCoordOnTwitter(${set.id})" title="${CURRENT_LANG === 'en' ? 'Share on X' : 'Xでシェア'}">📤</button>
             <button class="coord-icon-btn coord-del" onclick="deleteCoord(${set.id})" title="${CURRENT_LANG === 'en' ? 'Delete' : '削除'}">🗑</button>
@@ -1839,6 +1876,97 @@ function deleteCoord(id) {
   if (!confirm(CURRENT_LANG === 'en' ? 'Delete this coord?' : 'このコーデを削除しますか？')) return;
   const sets = getSavedCoords().filter(s => s.id !== id);
   localStorage.setItem(nsKey('myCoords'), JSON.stringify(sets));
+  renderMyCoordList();
+}
+
+// ── マイコーデ：写真の添付（生成画像への埋め込み用） ──────────────
+// 選んだ画像はcanvasで縮小・再圧縮してからdata URLとしてそのコーデに保存する。
+// スマホの写真をそのまま保存するとlocalStorageの容量をすぐに圧迫するための対策。
+let coordPhotoTargetId = null;
+
+function resizeImageFile(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w <= 0 || h <= 0) { reject(new Error('invalid image')); return; }
+      if (Math.max(w, h) > maxDim) {
+        const ratio = maxDim / Math.max(w, h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('failed to load image')); };
+    img.src = url;
+  });
+}
+
+function openCoordPhotoModal(id) {
+  coordPhotoTargetId = id;
+  renderCoordPhotoModal();
+  openModal('coordPhotoModal');
+}
+
+function renderCoordPhotoModal() {
+  const set = getSavedCoords().find(s => s.id === coordPhotoTargetId);
+  const preview = document.getElementById('coordPhotoPreview');
+  const status = document.getElementById('coordPhotoStatus');
+  const clearBtn = document.getElementById('coordPhotoClearBtn');
+  if (set && set.photoDataUrl) {
+    preview.src = set.photoDataUrl;
+    preview.style.display = '';
+    status.textContent = CURRENT_LANG === 'en' ? 'Photo attached' : '写真を添付済み';
+    clearBtn.style.display = '';
+  } else {
+    preview.src = '';
+    preview.style.display = 'none';
+    status.textContent = CURRENT_LANG === 'en' ? 'Not selected' : '未選択';
+    clearBtn.style.display = 'none';
+  }
+}
+
+async function onCoordPhotoSelected(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast(CURRENT_LANG === 'en' ? 'Please select an image file' : '画像ファイルを選択してください');
+    event.target.value = '';
+    return;
+  }
+  try {
+    const dataUrl = await resizeImageFile(file, 1000, 0.82);
+    const sets = getSavedCoords();
+    const set = sets.find(s => s.id === coordPhotoTargetId);
+    if (!set) return;
+    set.photoDataUrl = dataUrl;
+    localStorage.setItem(nsKey('myCoords'), JSON.stringify(sets));
+    renderCoordPhotoModal();
+    renderMyCoordList();
+  } catch (err) {
+    console.error(err);
+    const msg = (err && err.name === 'QuotaExceededError')
+      ? (CURRENT_LANG === 'en' ? 'Not enough storage space to save this photo' : '写真を保存する容量が足りません')
+      : (CURRENT_LANG === 'en' ? 'Failed to attach the photo' : '写真の添付に失敗しました');
+    showToast(msg);
+  } finally {
+    event.target.value = '';
+  }
+}
+
+function clearCoordPhoto() {
+  const sets = getSavedCoords();
+  const set = sets.find(s => s.id === coordPhotoTargetId);
+  if (!set) return;
+  delete set.photoDataUrl;
+  localStorage.setItem(nsKey('myCoords'), JSON.stringify(sets));
+  renderCoordPhotoModal();
   renderMyCoordList();
 }
 
@@ -1949,7 +2077,7 @@ function ensureHtml2Canvas() {
 }
 
 // コーデ内容から画像保存用のカード（画面外）を生成
-function buildExportCardEl(title, items) {
+function buildExportCardEl(title, items, photoDataUrl) {
   const rows = CATS.map(cat => {
     const item = items[cat.key];
     if (!item) return '';
@@ -1968,6 +2096,7 @@ function buildExportCardEl(title, items) {
   card.innerHTML = `
     <div class="exp-brand">${CURRENT_LANG === 'en' ? '🗂️ Item Collection Tracker' : '🗂️ アイテム所持率管理'}</div>
     <div class="exp-title">${escapeHtml(title)}</div>
+    ${photoDataUrl ? `<img class="exp-photo" src="${photoDataUrl}" alt="">` : ''}
     <div class="exp-body">${rows}</div>
   `;
   document.body.appendChild(card);
@@ -2078,22 +2207,23 @@ function openImagePreview(dataUrl, filename, shareText) {
 }
 
 // コーデを画像として書き出し、ダウンロードする
-function saveCoordAsImage(title, items, filenameBase) {
+// photoDataUrl を渡すと、そのコーデ用に添付した写真（実際に着ている写真など）を画像内に埋め込む
+function saveCoordAsImage(title, items, filenameBase, photoDataUrl) {
   if (!items || Object.keys(items).length === 0) {
     showToast(CURRENT_LANG === 'en' ? 'No coord selected' : 'コーデが選択されていません');
     return;
   }
-  return exportElementAsImage(() => buildExportCardEl(title, items), filenameBase);
+  return exportElementAsImage(() => buildExportCardEl(title, items, photoDataUrl), filenameBase);
 }
 
 // コーデを「画像＋一言コメント」としてXへ共有する
 // アイテム名を文字で列挙するのではなく、画像共有（保存）と同じカード画像をそのまま添付する
-function shareCoordImageOnX(title, items, filenameBase, shareText) {
+function shareCoordImageOnX(title, items, filenameBase, shareText, photoDataUrl) {
   if (!items || Object.keys(items).length === 0) {
     showToast(CURRENT_LANG === 'en' ? 'No coord selected' : 'コーデが選択されていません');
     return;
   }
-  return exportElementAsImage(() => buildExportCardEl(title, items), filenameBase, {
+  return exportElementAsImage(() => buildExportCardEl(title, items, photoDataUrl), filenameBase, {
     shareText,
     successToast: CURRENT_LANG === 'en' ? 'Shared!' : '共有しました！'
   });
@@ -2125,13 +2255,13 @@ function shareRandomOnTwitter() {
 function saveMyCoordAsImage(id) {
   const set = getSavedCoords().find(s => s.id === id);
   if (!set) return;
-  return saveCoordAsImage(`👗 ${set.name}`, set.items, set.name);
+  return saveCoordAsImage(`👗 ${set.name}`, set.items, set.name, set.photoDataUrl);
 }
 
 function shareMyCoordOnTwitter(id) {
   const set = getSavedCoords().find(s => s.id === id);
   if (!set) return;
-  return shareCoordImageOnX(`👗 ${set.name}`, set.items, set.name, buildMyCoordShareText(set.name));
+  return shareCoordImageOnX(`👗 ${set.name}`, set.items, set.name, buildMyCoordShareText(set.name), set.photoDataUrl);
 }
 
 // ── 総合達成率: 画像保存・Xシェア ──────────────
