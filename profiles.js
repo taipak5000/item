@@ -106,32 +106,32 @@ function deleteProfile(id) {
 function pfInjectStyle() {
   const style = document.createElement('style');
   style.textContent = `
-    .pf-bar { background: var(--card); border-bottom: 0.5px solid var(--sep); padding: 8px 20px;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      font-size: 12.5px; font-weight: 600; color: var(--text-2); cursor: pointer; }
-    .pf-bar:hover { background: var(--bg); }
-    .pf-bar .pf-name { color: var(--text); }
-    .pf-bar .pf-caret { font-size: 10px; opacity: 0.6; }
+    .pf-bar { max-width: 600px; margin: 12px auto 0; background: var(--card); border: 1px solid var(--sep);
+      border-radius: var(--r-sm); padding: 10px 14px; font-size: 13px; color: var(--text-2);
+      text-align: center; cursor: pointer; }
+    .pf-bar b { color: var(--blue); font-weight: 700; }
     .pf-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-      z-index: 1000; align-items: flex-end; justify-content: center; }
+      z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
     .pf-modal-overlay.open { display: flex; }
-    .pf-modal-card { background: var(--card); border-radius: 16px 16px 0 0; width: 100%; max-width: 600px;
-      max-height: 80vh; overflow-y: auto; padding: 20px 20px 28px; box-sizing: border-box; }
-    .pf-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-    .pf-modal-title { font-size: 17px; font-weight: 700; }
-    .pf-modal-close { font-size: 22px; color: var(--text-2); padding: 2px 6px; background: none; border: none; cursor: pointer; }
+    .pf-modal-card { width: 100%; max-width: 360px; max-height: 80vh; overflow-y: auto;
+      background: var(--card); border-radius: var(--r); padding: 20px; box-sizing: border-box;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .pf-modal-card h3 { margin: 0 0 14px; font-size: 16px; color: var(--text); }
     .pf-row { display: flex; align-items: center; gap: 8px; padding: 10px 4px; border-bottom: 0.5px solid var(--sep); }
-    .pf-row-name { flex: 1; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--text); }
-    .pf-row.active .pf-row-name { color: var(--blue); }
-    .pf-row-badge { font-size: 10px; font-weight: 700; color: #fff; background: var(--blue); border-radius: 999px; padding: 2px 8px; flex-shrink: 0; }
-    .pf-icon-btn { font-size: 15px; padding: 5px 6px; border-radius: 8px; color: var(--text-2); background: none; border: none; cursor: pointer; flex-shrink: 0; }
-    .pf-icon-btn:hover { background: var(--bg); }
+    .pf-row:last-of-type { border-bottom: none; }
+    .pf-row-name { flex: 1; font-size: 14.5px; color: var(--text); cursor: pointer; word-break: break-all; }
+    .pf-row.active .pf-row-name { color: var(--blue); font-weight: 700; }
+    .pf-icon-btn { background: var(--bg); border: 1px solid var(--sep); color: var(--text-2);
+      border-radius: 6px; padding: 5px 9px; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+    .pf-icon-btn:hover { background: var(--sep); }
     .pf-add-row { display: flex; gap: 8px; margin-top: 14px; }
-    .pf-input { flex: 1; background: var(--bg); border: none; border-radius: 10px; padding: 10px 12px;
-      font-size: 14px; color: var(--text); font-family: inherit; outline: none; box-sizing: border-box; }
-    .pf-add-btn { background: var(--blue); color: #fff; border-radius: 10px; padding: 10px 16px;
-      font-size: 14px; font-weight: 600; font-family: inherit; border: none; cursor: pointer; white-space: nowrap; }
-    .pf-hint { font-size: 11.5px; color: var(--text-2); line-height: 1.6; margin-top: 12px; }
+    .pf-input { flex: 1; background: var(--bg); border: 1px solid var(--sep); border-radius: 6px;
+      padding: 8px 10px; font-size: 14px; color: var(--text); font-family: inherit; outline: none; box-sizing: border-box; }
+    .pf-add-btn { background: var(--blue); color: #fff; border: none; border-radius: 6px; padding: 8px 14px;
+      font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap; }
+    .pf-hint { font-size: 11.5px; color: var(--text-2); line-height: 1.5; margin: 12px 0 0; }
+    .pf-close-btn { display: block; width: 100%; margin-top: 16px; background: var(--bg); border: 1px solid var(--sep);
+      color: var(--text); border-radius: var(--r-sm); padding: 10px; font-size: 14px; cursor: pointer; }
   `;
   document.head.appendChild(style);
 }
@@ -144,7 +144,7 @@ function pfRenderBar() {
   const bar = document.getElementById('pfBar');
   if (!bar) return;
   const profile = getActiveProfile();
-  bar.innerHTML = `👤 <span class="pf-name">${escapeHtmlPf(profile.name)}</span> <span class="pf-caret">▾</span>`;
+  bar.innerHTML = `🗂️ <b>${escapeHtmlPf(profile.name)}</b> ${pfT('に切替中（タップで切替）', 'active (tap to switch)')}`;
 }
 
 function escapeHtmlPf(str) {
@@ -164,26 +164,16 @@ function pfRenderModal() {
   const activeId = getActiveProfileId();
   const rows = list.map(p => {
     const isActive = p.id === activeId;
+    const nameEsc = escapeHtmlPf(p.name).replace(/'/g, "\\'");
     return `
       <div class="pf-row ${isActive ? 'active' : ''}">
-        <span class="pf-row-name" onclick="switchProfile('${p.id}')">${escapeHtmlPf(p.name)}</span>
-        ${isActive ? `<span class="pf-row-badge">${pfT('使用中','Active')}</span>` : ''}
-        <button type="button" class="pf-icon-btn" title="${pfT('名前を変更','Rename')}" onclick="pfPromptRename('${p.id}', '${escapeHtmlPf(p.name).replace(/'/g, "\\'")}')">✏️</button>
-        ${list.length > 1 ? `<button type="button" class="pf-icon-btn" title="${pfT('削除','Delete')}" onclick="pfConfirmDelete('${p.id}', '${escapeHtmlPf(p.name).replace(/'/g, "\\'")}')">🗑</button>` : ''}
+        <span class="pf-row-name" onclick="switchProfile('${p.id}')">${isActive ? '✅ ' : ''}${escapeHtmlPf(p.name)}</span>
+        <button type="button" class="pf-icon-btn" title="${pfT('名前を変更','Rename')}" onclick="pfPromptRename('${p.id}', '${nameEsc}')">✏️</button>
+        ${list.length > 1 ? `<button type="button" class="pf-icon-btn" title="${pfT('削除','Delete')}" onclick="pfConfirmDelete('${p.id}', '${nameEsc}')">🗑️</button>` : ''}
       </div>`;
   }).join('');
 
-  document.getElementById('pfModalBody').innerHTML = `
-    <div>${rows}</div>
-    <div class="pf-add-row">
-      <input type="text" class="pf-input" id="pfNewName" placeholder="${pfT('例: サブ垢1','e.g. Sub Account 1')}" maxlength="30">
-      <button type="button" class="pf-add-btn" onclick="pfAddProfile()">${pfT('＋ 追加','+ Add')}</button>
-    </div>
-    <div class="pf-hint">${pfT(
-      'プロフィールを切り替えると、所持アイテム・マイコーデ・お気に入りが切り替え先のプロフィールのものに入れ替わります（このブラウザ内にすべて保存されます）。',
-      'Switching profiles swaps your owned items, My Coords, and favorites to the selected profile\'s data (everything is stored locally in this browser).'
-    )}</div>
-  `;
+  document.getElementById('pfModalBody').innerHTML = `<div>${rows}</div>`;
 }
 
 function pfAddProfile() {
@@ -225,11 +215,17 @@ function pfInit() {
   overlay.onclick = (e) => { if (e.target === overlay) pfCloseModal(); };
   overlay.innerHTML = `
     <div class="pf-modal-card">
-      <div class="pf-modal-header">
-        <span class="pf-modal-title">👤 ${pfT('プロフィール切り替え','Switch Profile')}</span>
-        <button type="button" class="pf-modal-close" onclick="pfCloseModal()">✕</button>
-      </div>
+      <h3>🗂️ ${pfT('プロフィール（保存枠）','Profiles')}</h3>
       <div id="pfModalBody"></div>
+      <div class="pf-add-row">
+        <input type="text" class="pf-input" id="pfNewName" placeholder="${pfT('例: サブ垢1','e.g. Sub Account 1')}" maxlength="30">
+        <button type="button" class="pf-add-btn" onclick="pfAddProfile()">${pfT('追加','Add')}</button>
+      </div>
+      <div class="pf-hint">${pfT(
+        'プロフィールを切り替えると、所持アイテム・マイコーデ・お気に入りが切り替え先のプロフィールのものに入れ替わります（このブラウザ内にすべて保存されます）。',
+        'Switching profiles swaps your owned items, My Coords, and favorites to the selected profile\'s data (everything is stored locally in this browser).'
+      )}</div>
+      <button type="button" class="pf-close-btn" onclick="pfCloseModal()">${pfT('閉じる','Close')}</button>
     </div>`;
   document.body.appendChild(overlay);
 }
