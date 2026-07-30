@@ -11,6 +11,7 @@
   <meta name="theme-color" content="#FF9500">
   <title>アイテム所持率管理</title>
   <script src="i18n.js"></script>
+  <script src="profiles.js"></script>
   <script>if (CURRENT_LANG === 'en') document.title = 'Item Collection Tracker';</script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -1181,7 +1182,7 @@ const EXCLUSIVE_KEYS = ['portable_item', 'small_placeable', 'large_placeable'];
 /* ── Read localStorage ─────────────────── */
 function readCat(key) {
   try {
-    const d = JSON.parse(localStorage.getItem(LS + key));
+    const d = JSON.parse(localStorage.getItem(nsKey(LS + key)));
     if (d && typeof d.total === 'number' && d.total > 0) return d;
   } catch(_) {}
   return null;
@@ -1422,7 +1423,7 @@ function buildEventFilterOptions() {
 // 指定カテゴリの所持状況（itemOwned マップ）をlocalStorageから読み出す
 function readCatState(catKey) {
   try {
-    const d = JSON.parse(localStorage.getItem('gameItems_' + catKey));
+    const d = JSON.parse(localStorage.getItem(nsKey('gameItems_' + catKey)));
     return { owned: d?.itemOwned || {}, fav: d?.itemFav || {} };
   } catch { return { owned: {}, fav: {} }; }
 }
@@ -1513,7 +1514,7 @@ function renderGlobalSearch() {
 
 // 検索結果からその場で所持状態をトグルする（各カテゴリページのデータ形式と完全互換）
 function toggleOwnedFromSearch(catKey, itemId) {
-  const key = 'gameItems_' + catKey;
+  const key = nsKey('gameItems_' + catKey);
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(key)) || {}; } catch { saved = {}; }
 
@@ -1558,7 +1559,7 @@ function toggleOwnedFromSearch(catKey, itemId) {
 
 // 検索結果からその場でお気に入り状態をトグルする（各カテゴリページの★ボタンと完全互換）
 function toggleFavFromSearch(catKey, itemId, btnEl) {
-  const key = 'gameItems_' + catKey;
+  const key = nsKey('gameItems_' + catKey);
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(key)) || {}; } catch { saved = {}; }
 
@@ -1594,7 +1595,7 @@ function toggleFavFromSearch(catKey, itemId, btnEl) {
 // カテゴリの所持アイテム（名前付き）をLocalStorageから取得
 function getOwnedItemsForCat(catKey) {
   try {
-    const d = JSON.parse(localStorage.getItem('gameItems_' + catKey));
+    const d = JSON.parse(localStorage.getItem(nsKey('gameItems_' + catKey)));
     return d?.ownedItems || [];
   } catch { return []; }
 }
@@ -1611,7 +1612,7 @@ let favOnlyMode   = false;
    localStorage キー: randFav_<catKey> = JSON array of item IDs
  ─────────────────────────────────────────────── */
 function getFavIds(catKey) {
-  try { return JSON.parse(localStorage.getItem('randFav_' + catKey)) || []; }
+  try { return JSON.parse(localStorage.getItem(nsKey('randFav_' + catKey))) || []; }
   catch { return []; }
 }
 
@@ -1624,7 +1625,7 @@ function toggleFavorite(catKey, itemId) {
   const favs = getFavIds(catKey);
   const idx  = favs.indexOf(id);
   if (idx === -1) favs.push(id); else favs.splice(idx, 1);
-  localStorage.setItem('randFav_' + catKey, JSON.stringify(favs));
+  localStorage.setItem(nsKey('randFav_' + catKey), JSON.stringify(favs));
 
   // DOM の❤️ボタンをその場で更新
   const btn = document.querySelector(`.rand-fav-btn[data-cat="${catKey}"][data-id="${id}"]`);
@@ -1770,7 +1771,7 @@ function confirmSaveRandom() {
 
   const sets = getSavedCoords();
   sets.push({ id: Date.now(), name, items: currentRandom, createdAt: new Date().toISOString() });
-  localStorage.setItem('myCoords', JSON.stringify(sets));
+  localStorage.setItem(nsKey('myCoords'), JSON.stringify(sets));
 
   hideSaveRow();
   showToast(CURRENT_LANG === 'en' ? `Saved "${name}"!` : `「${name}」を保存しました！`);
@@ -1778,7 +1779,7 @@ function confirmSaveRandom() {
 
 // ── マイコーデ ────────────────────────────────
 function getSavedCoords() {
-  try { return JSON.parse(localStorage.getItem('myCoords')) || []; }
+  try { return JSON.parse(localStorage.getItem(nsKey('myCoords'))) || []; }
   catch { return []; }
 }
 
@@ -1838,7 +1839,7 @@ function renderMyCoordList() {
 function deleteCoord(id) {
   if (!confirm(CURRENT_LANG === 'en' ? 'Delete this coord?' : 'このコーデを削除しますか？')) return;
   const sets = getSavedCoords().filter(s => s.id !== id);
-  localStorage.setItem('myCoords', JSON.stringify(sets));
+  localStorage.setItem(nsKey('myCoords'), JSON.stringify(sets));
   renderMyCoordList();
 }
 
@@ -1908,7 +1909,7 @@ function saveCreatedCoord() {
 
   const sets = getSavedCoords();
   sets.push({ id: Date.now(), name, items, createdAt: new Date().toISOString() });
-  localStorage.setItem('myCoords', JSON.stringify(sets));
+  localStorage.setItem(nsKey('myCoords'), JSON.stringify(sets));
 
   document.getElementById('newCoordName').value = '';
   showToast(CURRENT_LANG === 'en' ? `Saved "${name}"!` : `「${name}」を保存しました！`);

@@ -353,6 +353,7 @@
 </div><!-- /.app-layout -->
 
 <script src="i18n.js"></script>
+<script src="profiles.js"></script>
 <script>
 /* ==========================================================================
    🔧 設定エリア：作成するページに合わせてここを書き換えてください
@@ -404,7 +405,7 @@ const ITEMS_DATA = [
 ];
 /* ========================================================================== */
 
-const LS_KEY = 'gameItems_' + CAT_KEY;
+const LS_KEY = nsKey('gameItems_' + CAT_KEY);
 let userStates = { owned: {}, fav: {} };
 
 // 表示モード（グリッド／リスト）：カテゴリpage共通の設定として保存

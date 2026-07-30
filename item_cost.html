@@ -288,6 +288,7 @@
 </footer>
 
 <script src="i18n.js"></script>
+<script src="profiles.js"></script>
 <script>
 /* ================================================================
    カテゴリ別アイテムコストデータ
@@ -1499,7 +1500,7 @@ const DAY_ORDER = [
 
 function readOwnedMap(catKey) {
   try {
-    const d = JSON.parse(localStorage.getItem('gameItems_' + catKey));
+    const d = JSON.parse(localStorage.getItem(nsKey('gameItems_' + catKey)));
     return (d && d.itemOwned) || {};
   } catch (_) { return {}; }
 }
@@ -1508,7 +1509,7 @@ function extractSource(source) {
   const m = /^([^（(]+)/.exec(source);
   return m ? m[1].trim() : source;
 }
-const SEASON_ACQUIRE_KEY = 'seasonAcquireMode_v1';
+const SEASON_ACQUIRE_KEY = nsKey('seasonAcquireMode_v1');
 function loadSeasonAcquireMap() {
   try { return JSON.parse(localStorage.getItem(SEASON_ACQUIRE_KEY)) || {}; }
   catch (_) { return {}; }
