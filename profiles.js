@@ -8,8 +8,8 @@
    （i18n.js の後に読み込むこと）。
    ================================================================ */
 
-const PROFILES_KEY        = 'itemProfiles_v1';       // [{ id, name }, ...]
-const ACTIVE_PROFILE_KEY   = 'itemActiveProfile_v1';  // 現在選択中のプロフィールID
+const PROFILES_KEY        = 'skyProfiles_v1';       // [{ id, name }, ...]（taipak5000.github.io 配下の各ツール共通）
+const ACTIVE_PROFILE_KEY   = 'skyActiveProfile_v1';  // 現在選択中のプロフィールID（共通）
 const DEFAULT_PROFILE_ID   = 'default';
 
 function pfDefaultName() {
