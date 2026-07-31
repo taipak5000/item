@@ -1532,6 +1532,11 @@ function readCatState(catKey) {
 async function openItemSearch() {
   openModal('itemSearchModal');
 
+  // 季節・イベントの選択肢がまだ組み立てられていなければ組み立てる
+  // （allItemsCache はバックグラウンド先読みで既に埋まっていることがあり、その場合もここで一度は必ず構築する）
+  if (allItemsCache && document.getElementById('gsEvent').options.length <= 1) {
+    buildEventFilterOptions();
+  }
   if (allItemsCache) { renderGlobalSearch(); return; }
 
   document.getElementById('gsResults').innerHTML = CURRENT_LANG === 'en'
