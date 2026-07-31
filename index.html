@@ -1141,6 +1141,14 @@
         <span style="color:var(--blue); font-weight:600; cursor:pointer;" onclick="setAllFavSelection(false)" data-i18n-en="Deselect All">すべて解除</span>
       </span>
     </div>
+    <div class="gs-control-row" style="margin-bottom:8px;">
+      <select class="cat-sel" id="favCatFilter" onchange="renderFavItemSelectList()">
+        <option value="all" data-i18n-en="All Categories">すべてのカテゴリ</option>
+      </select>
+      <select class="cat-sel" id="favEventFilter" onchange="renderFavItemSelectList()">
+        <option value="all" data-i18n-en="All Seasons/Events">すべての季節・イベント</option>
+      </select>
+    </div>
     <div id="favItemSelectList" class="customize-cat-grid" style="max-height:240px; overflow-y:auto; padding-right:2px;"><!-- JS --></div>
 
     <div class="customize-section-label" data-i18n-en="Comment (optional)">コメント（任意）</div>
@@ -1337,7 +1345,7 @@ function preloadCatIcons() {
 preloadCatIcons();
 
 document.addEventListener('DOMContentLoaded', loadAndRender);
-document.addEventListener('DOMContentLoaded', buildCategoryFilterOptions);
+document.addEventListener('DOMContentLoaded', () => buildCategoryFilterOptions());
 // 未登録カテゴリでも総アイテム数を表示できるよう、全カテゴリのデータをバックグラウンドで取得しておく
 // （取得できたら件数表示を更新。file:// で開いている等、失敗しても「未登録」表示に留まるだけなので無視してよい）
 document.addEventListener('DOMContentLoaded', () => {
@@ -1430,11 +1438,13 @@ function loadAllItemsOnce() {
 }
 
 // カテゴリ絞り込みセレクトの中身を構築（CATS配列があれば即時に組み立てられる）
-function buildCategoryFilterOptions() {
-  const select = document.getElementById('gsCat');
+// catKeys を渡すと、そのキー集合に含まれるカテゴリのみに絞って表示する（例: お気に入り共有ではお気に入りがあるカテゴリのみ）
+function buildCategoryFilterOptions(selectId = 'gsCat', catKeys = null) {
+  const select = document.getElementById(selectId);
   if (!select) return;
+  const cats = catKeys ? CATS.filter(c => catKeys.has(c.key)) : CATS;
   select.innerHTML = `<option value="all">${CURRENT_LANG === 'en' ? 'All Categories' : 'すべてのカテゴリ'}</option>` +
-    CATS.map(c => `<option value="${c.key}">${escapeHtml(trCat(c.name))}</option>`).join('');
+    cats.map(c => `<option value="${c.key}">${escapeHtml(trCat(c.name))}</option>`).join('');
 }
 
 // 季節は実装順（登場した順）、日々は来福の日々を起点とした年間の開催順。
@@ -1453,11 +1463,12 @@ const EVENT_ORDER = [
 
 // イベント（季節・日々）絞り込みセレクトの中身を構築
 // 「○○の季節」「○○の日々」という命名規則を利用して optgroup で分けて表示する
-function buildEventFilterOptions() {
-  const select = document.getElementById('gsEvent');
-  if (!select || !allItemsCache) return;
+// items を渡すと、その配列に実際に含まれるイベントのみに絞って表示する（例: お気に入り共有ではお気に入りの季節・イベントのみ）
+function buildEventFilterOptions(selectId = 'gsEvent', items = allItemsCache) {
+  const select = document.getElementById(selectId);
+  if (!select || !items) return;
 
-  const events = [...new Set(allItemsCache.map(it => it.event))].sort((a, b) => {
+  const events = [...new Set(items.map(it => it.event))].sort((a, b) => {
     const ia = EVENT_ORDER.indexOf(a);
     const ib = EVENT_ORDER.indexOf(b);
     if (ia === -1 && ib === -1) return 0;
@@ -2487,6 +2498,8 @@ async function openFavShare() {
   try {
     favShareItems = await getFavoriteItems();
     favShareSelectedIds = new Set(favShareItems.map(favItemKey));
+    buildCategoryFilterOptions('favCatFilter', new Set(favShareItems.map(i => i.catKey)));
+    buildEventFilterOptions('favEventFilter', favShareItems);
     renderFavItemSelectList();
     document.getElementById('favShareCountText').textContent = favShareItems.length > 0
       ? (CURRENT_LANG === 'en' ? `You currently have ${favShareItems.length} favorite item(s)` : `現在 ${favShareItems.length}件のお気に入りアイテムがあります`)
@@ -2499,11 +2512,25 @@ async function openFavShare() {
   }
 }
 
-// お気に入り一覧から共有対象を選ぶチェックリストを描画
+// カテゴリ・季節/イベント絞り込みを適用したお気に入りアイテム一覧を返す
+function getFilteredFavShareItems() {
+  const fCat = document.getElementById('favCatFilter')?.value || 'all';
+  const fEvent = document.getElementById('favEventFilter')?.value || 'all';
+  return favShareItems.filter(item =>
+    (fCat === 'all' || item.catKey === fCat) &&
+    (fEvent === 'all' || item.event === fEvent));
+}
+
+// お気に入り一覧から共有対象を選ぶチェックリストを描画（カテゴリ・季節/イベントで絞り込み可能）
 function renderFavItemSelectList() {
   const listEl = document.getElementById('favItemSelectList');
   if (favShareItems.length === 0) { listEl.innerHTML = ''; return; }
-  listEl.innerHTML = favShareItems.map(item => {
+  const visible = getFilteredFavShareItems();
+  if (visible.length === 0) {
+    listEl.innerHTML = `<div class="empty-msg" style="padding:14px 0;">${CURRENT_LANG === 'en' ? 'No favorite items match this filter' : '絞り込み条件に一致するお気に入りアイテムがありません'}</div>`;
+    return;
+  }
+  listEl.innerHTML = visible.map(item => {
     const cat = CATS.find(c => c.key === item.catKey);
     if (!cat) return '';
     const key = favItemKey(item);
@@ -2522,8 +2549,14 @@ function toggleFavItemSelection(key, checked) {
   else favShareSelectedIds.delete(key);
 }
 
+// 絞り込み中の一覧に対してのみ、一括選択／解除を行う（フィルター外の選択状態は保持する）
 function setAllFavSelection(checked) {
-  favShareSelectedIds = checked ? new Set(favShareItems.map(favItemKey)) : new Set();
+  const visible = getFilteredFavShareItems();
+  visible.forEach(item => {
+    const key = favItemKey(item);
+    if (checked) favShareSelectedIds.add(key);
+    else favShareSelectedIds.delete(key);
+  });
   renderFavItemSelectList();
 }
 
