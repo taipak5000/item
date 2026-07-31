@@ -1046,7 +1046,7 @@
 
     <div class="gs-control-panel">
       <div class="gs-control-row">
-        <input type="text" class="form-input" id="gsName" data-i18n-en-placeholder="🔍 Search by item name..." placeholder="🔍 アイテム名で検索..." oninput="renderGlobalSearch()">
+        <input type="text" class="form-input" id="gsName" data-i18n-en-placeholder="🔍 Search by item name, season, or day..." placeholder="🔍 アイテム名・季節/日々で検索..." oninput="renderGlobalSearch()">
       </div>
       <div class="gs-control-row">
         <select class="cat-sel" id="gsEvent" onchange="renderGlobalSearch()">
@@ -1565,7 +1565,11 @@ function renderGlobalSearch() {
   const getState = catKey => stateCache[catKey] || (stateCache[catKey] = readCatState(catKey));
 
   const filtered = allItemsCache.filter(item => {
-    if (fName && !item.name.toLowerCase().includes(fName) && !(item.nameEn && item.nameEn.toLowerCase().includes(fName))) return false;
+    if (fName
+      && !item.name.toLowerCase().includes(fName)
+      && !(item.nameEn && item.nameEn.toLowerCase().includes(fName))
+      && !item.event.toLowerCase().includes(fName)
+      && !trEvent(item.event).toLowerCase().includes(fName)) return false;
     if (fEvent !== 'all' && item.event !== fEvent) return false;
     if (fCat !== 'all' && item.catKey !== fCat) return false;
     if (fOwned !== 'all') {
