@@ -530,14 +530,38 @@
       font-size: 14px; color: var(--text); font-family: inherit;
       outline: none; box-sizing: border-box;
     }
-    .cat-sel-row   { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .cat-sel-label { font-size: 13px; width: 112px; flex-shrink: 0; }
     .cat-sel {
       flex: 1; background: var(--bg); border: none;
       border-radius: var(--r-sm); padding: 8px 10px;
       font-size: 13px; color: var(--text); font-family: inherit; outline: none;
     }
     .cat-sel:disabled { opacity: 0.4; }
+
+    /* ── マイコーデ作成：アイコンで選ぶピッカー ─────── */
+    .coord-pick-row     { margin-bottom: 14px; }
+    .coord-pick-label   { font-size: 12.5px; color: var(--text-2); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+    .coord-pick-strip   {
+      display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .coord-pick-item {
+      flex-shrink: 0; width: 52px; height: 52px; border-radius: 12px;
+      background: var(--bg); border: 2px solid transparent;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; position: relative; cursor: pointer;
+    }
+    .coord-pick-item img { width: 100%; height: 100%; object-fit: contain; padding: 12%; box-sizing: border-box; display: block; }
+    .coord-pick-item.selected { border-color: var(--blue); }
+    .coord-pick-item.selected::after {
+      content: '✓'; position: absolute; bottom: 1px; right: 1px;
+      width: 16px; height: 16px; border-radius: 50%; background: var(--blue); color: #fff;
+      font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 0 2px var(--card);
+    }
+    .coord-pick-none {
+      font-size: 18px; color: var(--text-3);
+    }
+    .coord-pick-empty { font-size: 12px; color: var(--text-3); padding: 6px 2px; }
 
     /* ── アイテム横断検索（季節・イベント検索） ─── */
     .gs-control-panel { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
@@ -729,7 +753,7 @@
       vertical-align: middle;
     }
     .coord-cat img,
-    .cat-sel-label img {
+    .coord-pick-label img {
       width: 16px; height: 16px;
       object-fit: cover;
       border-radius: 4px;
@@ -1832,6 +1856,7 @@ function showCoordList() {
 function showCreateForm() {
   document.getElementById('myCoordListView').style.display = 'none';
   document.getElementById('myCoordCreateView').style.display = 'block';
+  coordFormSelection = {};
   buildCreateForm();
 }
 
@@ -1971,52 +1996,52 @@ function clearCoordPhoto() {
   renderMyCoordList();
 }
 
+// マイコーデ作成フォームの選択状態: { [catKey]: itemId }
+let coordFormSelection = {};
+
 function buildCreateForm() {
   const el = document.getElementById('catSelects');
   el.innerHTML = CATS.map(cat => {
     const owned = getOwnedItemsForCat(cat.key);
-    const disabled = owned.length === 0;
-    const opts = disabled
-      ? `<option value="">${CURRENT_LANG === 'en' ? '(No owned items)' : '（所持アイテムなし）'}</option>`
-      : `<option value="">${CURRENT_LANG === 'en' ? 'None' : '選択しない'}</option>` +
-        owned.map(i => `<option value="${i.id}">${escapeHtml(trItem(i))}</option>`).join('');
 
     // 排他グループの先頭にヒントを挿入
     const prefix = cat.key === EXCLUSIVE_KEYS[0]
       ? `<div class="exclusive-hint">${CURRENT_LANG === 'en' ? '⚠️ Only one of the following 3 categories can be selected' : '⚠️ 以下3カテゴリはどれか1つのみ選択できます'}</div>`
       : '';
 
-    return `${prefix}<div class="cat-sel-row">
-        <div class="cat-sel-label">${catIconHtml(cat)} ${trCat(cat.name)}</div>
-        <select class="cat-sel" id="sel_${cat.key}" ${disabled ? 'disabled' : ''}
-          ${EXCLUSIVE_KEYS.includes(cat.key) ? 'data-exclusive="true"' : ''}>${opts}</select>
+    if (owned.length === 0) {
+      return `${prefix}<div class="coord-pick-row">
+          <div class="coord-pick-label">${catIconHtml(cat)} ${trCat(cat.name)}</div>
+          <div class="coord-pick-empty">${CURRENT_LANG === 'en' ? '(No owned items)' : '（所持アイテムなし）'}</div>
+        </div>`;
+    }
+
+    const selectedId = coordFormSelection[cat.key];
+    const noneBtn = `<div class="coord-pick-item coord-pick-none ${!selectedId ? 'selected' : ''}"
+        onclick="selectCoordItem('${cat.key}', null)"
+        title="${CURRENT_LANG === 'en' ? 'None' : '選択しない'}">✕</div>`;
+    const itemBtns = owned.map(i => `<div class="coord-pick-item ${selectedId === i.id ? 'selected' : ''}"
+        onclick="selectCoordItem('${cat.key}', '${i.id}')"
+        title="${escapeHtml(trItem(i))}">${itemIconHtml(cat, i)}</div>`).join('');
+
+    return `${prefix}<div class="coord-pick-row">
+        <div class="coord-pick-label">${catIconHtml(cat)} ${trCat(cat.name)}</div>
+        <div class="coord-pick-strip">${noneBtn}${itemBtns}</div>
       </div>`;
   }).join('');
-
-  // 排他グループにイベントリスナーを設定
-  EXCLUSIVE_KEYS.forEach(key => {
-    const sel = document.getElementById('sel_' + key);
-    if (sel && !sel.disabled) {
-      sel.addEventListener('change', handleExclusiveChange);
-    }
-  });
 }
 
-// 排他セレクト変更時: 値が入ったら他の排他セレクトを無効化・クリア
-function handleExclusiveChange(e) {
-  const changedKey = e.target.id.replace('sel_', '');
-  if (!EXCLUSIVE_KEYS.includes(changedKey)) return;
-  const hasValue = e.target.value !== '';
-
-  EXCLUSIVE_KEYS.forEach(key => {
-    if (key === changedKey) return;
-    const sel = document.getElementById('sel_' + key);
-    if (!sel) return;
-    // 所持アイテムなしで元から disabled のものはそのまま
-    if (getOwnedItemsForCat(key).length === 0) return;
-    sel.disabled = hasValue;
-    if (hasValue) sel.value = '';
-  });
+// アイコンをタップして選択（排他グループは他2カテゴリの選択を自動解除）
+function selectCoordItem(catKey, itemId) {
+  if (itemId) {
+    coordFormSelection[catKey] = itemId;
+    if (EXCLUSIVE_KEYS.includes(catKey)) {
+      EXCLUSIVE_KEYS.forEach(key => { if (key !== catKey) delete coordFormSelection[key]; });
+    }
+  } else {
+    delete coordFormSelection[catKey];
+  }
+  buildCreateForm();
 }
 
 function saveCreatedCoord() {
@@ -2025,10 +2050,10 @@ function saveCreatedCoord() {
 
   const items = {};
   CATS.forEach(cat => {
-    const sel = document.getElementById(`sel_${cat.key}`);
-    if (sel && sel.value) {
+    const itemId = coordFormSelection[cat.key];
+    if (itemId) {
       const owned = getOwnedItemsForCat(cat.key);
-      const item = owned.find(i => i.id === sel.value);
+      const item = owned.find(i => i.id === itemId);
       if (item) items[cat.key] = item;
     }
   });
@@ -2040,6 +2065,7 @@ function saveCreatedCoord() {
   localStorage.setItem(nsKey('myCoords'), JSON.stringify(sets));
 
   document.getElementById('newCoordName').value = '';
+  coordFormSelection = {};
   showToast(CURRENT_LANG === 'en' ? `Saved "${name}"!` : `「${name}」を保存しました！`);
   showCoordList();
 }
