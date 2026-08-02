@@ -108,8 +108,12 @@ function pfInjectStyle() {
   style.textContent = `
     .pf-bar { max-width: 600px; margin: 12px auto 0; background: var(--card); border: 1px solid var(--sep);
       border-radius: var(--r-sm); padding: 10px 14px; font-size: 13px; color: var(--text-2);
-      text-align: center; cursor: pointer; }
+      display: flex; align-items: center; gap: 10px; }
     .pf-bar b { color: var(--blue); font-weight: 700; }
+    .pf-bar-text { flex: 1; min-width: 0; cursor: pointer; }
+    .pf-search-btn { background: var(--bg); border: 1px solid var(--sep); color: var(--text-2);
+      border-radius: 6px; padding: 5px 10px; font-size: 14px; cursor: pointer; flex-shrink: 0; line-height: 1; }
+    .pf-search-btn:hover { background: var(--sep); }
     .pf-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
       z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
     .pf-modal-overlay.open { display: flex; }
@@ -137,6 +141,26 @@ function pfInjectStyle() {
     .pf-row-confirm-text { flex: 1; font-size: 13px; color: var(--text); line-height: 1.4; }
     .pf-row-btn-ok { background: var(--blue); color: #fff; border: none; }
     .pf-row-btn-danger { background: #ff3b30; color: #fff; border: none; }
+
+    .srch-modal-card { max-width: 420px; }
+    .srch-input { width: 100%; box-sizing: border-box; background: var(--bg); border: 1px solid var(--sep);
+      border-radius: var(--r-sm); padding: 10px 12px; font-size: 15px; font-family: inherit; color: var(--text); outline: none; }
+    .srch-input:focus { border-color: var(--blue); }
+    .srch-status { font-size: 12px; color: var(--text-2); padding: 8px 2px 0; }
+    .srch-group-label { font-size: 12px; font-weight: 700; color: var(--text-2);
+      padding: 14px 2px 6px; display: flex; align-items: center; gap: 6px; }
+    .srch-count { color: var(--text-2); font-weight: 600; opacity: 0.7; }
+    .srch-row { display: flex; align-items: center; gap: 10px; background: var(--bg); border-radius: var(--r-sm);
+      padding: 9px 10px; margin-bottom: 6px; text-decoration: none; color: inherit; }
+    .srch-row:active { opacity: 0.7; }
+    .srch-icon { width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; background: var(--card);
+      display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden; }
+    .srch-icon img { width: 100%; height: 100%; object-fit: contain; padding: 8%; display: block; }
+    .srch-info { flex: 1; min-width: 0; }
+    .srch-name { font-size: 13.5px; font-weight: 600; color: var(--text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .srch-meta { font-size: 11px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .srch-arrow { color: var(--text-2); font-size: 13px; flex-shrink: 0; }
   `;
   document.head.appendChild(style);
 }
@@ -149,7 +173,9 @@ function pfRenderBar() {
   const bar = document.getElementById('pfBar');
   if (!bar) return;
   const profile = getActiveProfile();
-  bar.innerHTML = `🗂️ <b>${escapeHtmlPf(profile.name)}</b> ${pfT('に切替中（タップで切替）', 'active (tap to switch)')}`;
+  bar.innerHTML = `
+    <span class="pf-bar-text" onclick="pfOpenModal()">🗂️ <b>${escapeHtmlPf(profile.name)}</b> ${pfT('に切替中（タップで切替）', 'active (tap to switch)')}</span>
+    <button type="button" class="pf-search-btn" onclick="srchOpen()" title="${pfT('横断検索（アイテム・エモート・精霊・季節）', 'Cross-site search')}">🔍</button>`;
 }
 
 function escapeHtmlPf(str) {
@@ -267,7 +293,6 @@ function pfInit() {
   const bar = document.createElement('div');
   bar.className = 'pf-bar';
   bar.id = 'pfBar';
-  bar.onclick = pfOpenModal;
   nav.insertAdjacentElement('afterend', bar);
   pfRenderBar();
 
@@ -290,6 +315,195 @@ function pfInit() {
       <button type="button" class="pf-close-btn" onclick="pfCloseModal()">${pfT('閉じる','Close')}</button>
     </div>`;
   document.body.appendChild(overlay);
+
+  const searchOverlay = document.createElement('div');
+  searchOverlay.className = 'pf-modal-overlay';
+  searchOverlay.id = 'srchModalOverlay';
+  searchOverlay.onclick = (e) => { if (e.target === searchOverlay) srchClose(); };
+  searchOverlay.innerHTML = `
+    <div class="pf-modal-card srch-modal-card">
+      <h3>🔍 ${pfT('横断検索', 'Cross-site Search')}</h3>
+      <input type="search" class="srch-input" id="srchInput" placeholder="${pfT('名前で検索（例: ケープ、砕ケル、バイオリン…）', 'Search by name…')}" oninput="srchOnInput()">
+      <div class="srch-status" id="srchStatus">${pfT('2文字以上で検索できます', 'Type at least 2 characters')}</div>
+      <div id="srchResults"></div>
+      <button type="button" class="pf-close-btn" onclick="srchClose()">${pfT('閉じる', 'Close')}</button>
+    </div>`;
+  document.body.appendChild(searchOverlay);
 }
 
 document.addEventListener('DOMContentLoaded', pfInit);
+
+/* ================================================================
+   🔍 横断検索（アイテム所持管理サイト内のどのページからでも開ける）
+   同じ taipak5000.github.io 上の各ツール（item自身の全カテゴリ・emote・wings）から
+   データを読み込んで、アイテム・エモート・精霊・季節/イベントを一括で名前検索する。
+   他サイトがまだ公開されていない場合はそのカテゴリの結果が0件になるだけで、
+   検索自体は問題なく動作する。
+   ================================================================ */
+const SITE_ROOT = location.origin;
+const SRCH_ITEM_CATS = [
+  { key: 'outfit',          name: 'アウトフィット',       file: 'outfit.html' },
+  { key: 'shoes',           name: 'シューズ',             file: 'shoes.html' },
+  { key: 'mask',            name: 'マスク',               file: 'mask.html' },
+  { key: 'face_accessory',  name: 'フェイスアクセサリー', file: 'face_accessory.html' },
+  { key: 'necklace',        name: 'ネックレス',           file: 'necklace.html' },
+  { key: 'hairstyle',       name: 'ヘアスタイル',         file: 'hairstyle.html' },
+  { key: 'hair_accessory',  name: 'ヘアアクセサリー',     file: 'hair_accessory.html' },
+  { key: 'head_accessory',  name: 'ヘッドアクセサリー',   file: 'head_accessory.html' },
+  { key: 'cape',            name: 'ケープ',               file: 'cape.html' },
+  { key: 'portable_item',   name: '持ち運べるアイテム',   file: 'portable_item.html' },
+  { key: 'large_placeable', name: '大きい設置アイテム',   file: 'large_placeable.html' },
+  { key: 'small_placeable', name: '小さい設置アイテム',   file: 'small_placeable.html' },
+];
+
+let srchIndex = null;
+let srchLoading = null;
+
+// HTMLに埋め込まれた `const 変数名 = [...]` 配列を安全に取り出す
+function srchExtractArray(html, varName) {
+  const m = html.match(new RegExp('const ' + varName + '\\s*=\\s*(\\[[\\s\\S]*?\\n\\]);'));
+  if (!m) return null;
+  try { return new Function('return ' + m[1] + ';')(); } catch (e) { console.error(varName, e); return null; }
+}
+
+async function srchBuildIndex() {
+  const idx = { items: [], emotes: [], spirits: [], events: [] };
+
+  // 1) アイテム（item自身の12カテゴリページから抽出）
+  await Promise.all(SRCH_ITEM_CATS.map(async cat => {
+    try {
+      const res = await fetch(`${SITE_ROOT}/item/${cat.file}`);
+      const html = await res.text();
+      const data = srchExtractArray(html, 'ITEMS_DATA') || [];
+      data.forEach(it => idx.items.push({
+        name: it.name, nameEn: it.nameEn || '', event: it.event || '',
+        catName: cat.name, url: `${SITE_ROOT}/item/${cat.file}`,
+        img: `${SITE_ROOT}/item/images/${cat.key}/${it.id}.png`
+      }));
+    } catch (e) { console.error(cat.key, e); }
+  }));
+
+  // 2) エモート（他サイトがまだ公開されていなければ0件のまま）
+  try {
+    const res = await fetch(`${SITE_ROOT}/emote/index.html`);
+    const html = await res.text();
+    (srchExtractArray(html, 'EMOTES_DATA') || []).forEach(em => idx.emotes.push({
+      name: em.name, nameEn: em.nameEn || '', location: em.location || '',
+      maxLevel: em.maxLevel, url: `${SITE_ROOT}/emote/`
+    }));
+  } catch (e) { console.error('emote', e); }
+
+  // 3) 精霊（羽トラッカーの季節別精霊リスト）
+  try {
+    const res = await fetch(`${SITE_ROOT}/wings/index.html`);
+    const html = await res.text();
+    (srchExtractArray(html, 'SEASON_SPIRITS') || []).forEach(ss => {
+      (ss.spirits || []).forEach(sp => idx.spirits.push({
+        name: sp, season: ss.season, url: `${SITE_ROOT}/wings/`
+      }));
+    });
+  } catch (e) { console.error('wings', e); }
+
+  // 4) 季節・イベント名（アイテムに登場する全イベント名）
+  const evSet = new Set();
+  idx.items.forEach(it => { if (it.event) evSet.add(it.event); });
+  idx.events = [...evSet].map(name => ({ name, url: `${SITE_ROOT}/item/index.html` }));
+
+  return idx;
+}
+
+async function srchEnsureIndex() {
+  if (srchIndex) return srchIndex;
+  if (!srchLoading) {
+    srchLoading = srchBuildIndex().then(idx => { srchIndex = idx; return idx; });
+  }
+  return srchLoading;
+}
+
+let srchTimer = null;
+function srchOnInput() {
+  clearTimeout(srchTimer);
+  srchTimer = setTimeout(srchRun, 200);
+}
+
+async function srchRun() {
+  const q = document.getElementById('srchInput').value.trim().toLowerCase();
+  const statusEl = document.getElementById('srchStatus');
+  const resultsEl = document.getElementById('srchResults');
+
+  if (q.length < 2) {
+    statusEl.textContent = pfT('2文字以上で検索できます', 'Type at least 2 characters');
+    resultsEl.innerHTML = '';
+    return;
+  }
+
+  if (!srchIndex) {
+    statusEl.textContent = pfT('検索データを読み込み中…（初回のみ数秒かかります）', 'Loading search data… (first time only)');
+    await srchEnsureIndex();
+  }
+
+  const match = s => (s || '').toLowerCase().includes(q);
+  const items   = srchIndex.items.filter(it => match(it.name) || match(it.nameEn) || match(it.event));
+  const emotes  = srchIndex.emotes.filter(em => match(em.name) || match(em.nameEn) || match(em.location));
+  const spirits = srchIndex.spirits.filter(sp => match(sp.name) || match(sp.season));
+  const events  = srchIndex.events.filter(ev => match(ev.name));
+  const total = items.length + emotes.length + spirits.length + events.length;
+
+  statusEl.textContent = total === 0
+    ? pfT('一致する結果がありません', 'No matches found')
+    : pfT(`${total}件ヒット`, `${total} results`);
+
+  const LIMIT = 30;
+  const group = (label, icon, rows) => rows.length === 0 ? '' : `
+    <div class="srch-group-label">${icon} ${label} <span class="srch-count">${pfT(`${rows.length}件${rows.length > LIMIT ? `（先頭${LIMIT}件を表示）` : ''}`, `${rows.length}${rows.length > LIMIT ? ` (first ${LIMIT})` : ''}`)}</span></div>
+    ${rows.slice(0, LIMIT).join('')}`;
+
+  resultsEl.innerHTML =
+    group(pfT('アイテム', 'Items'), '🗂️', items.map(it => `
+      <a class="srch-row" href="${it.url}">
+        <div class="srch-icon"><img src="${it.img}" alt="" loading="lazy" onerror="this.remove()"></div>
+        <div class="srch-info">
+          <div class="srch-name">${escapeHtmlPf(it.name)}</div>
+          <div class="srch-meta">${escapeHtmlPf(it.catName)} ・ ${escapeHtmlPf(it.event)}</div>
+        </div>
+        <span class="srch-arrow">›</span>
+      </a>`)) +
+    group(pfT('エモート', 'Emotes'), '🎭', emotes.map(em => `
+      <a class="srch-row" href="${em.url}">
+        <div class="srch-icon">🎭</div>
+        <div class="srch-info">
+          <div class="srch-name">${escapeHtmlPf(em.name)}</div>
+          <div class="srch-meta">${escapeHtmlPf(em.location || '')}${em.maxLevel ? ` ・ Lv1〜${em.maxLevel}` : ''}</div>
+        </div>
+        <span class="srch-arrow">›</span>
+      </a>`)) +
+    group(pfT('精霊', 'Spirits'), '✨', spirits.map(sp => `
+      <a class="srch-row" href="${sp.url}">
+        <div class="srch-icon">✨</div>
+        <div class="srch-info">
+          <div class="srch-name">${escapeHtmlPf(sp.name)}</div>
+          <div class="srch-meta">${escapeHtmlPf(sp.season)}</div>
+        </div>
+        <span class="srch-arrow">›</span>
+      </a>`)) +
+    group(pfT('季節・イベント', 'Seasons/Events'), '🍁', events.map(ev => `
+      <a class="srch-row" href="${ev.url}">
+        <div class="srch-icon">🍁</div>
+        <div class="srch-info">
+          <div class="srch-name">${escapeHtmlPf(ev.name)}</div>
+          <div class="srch-meta">${pfT('アイテム検索で絞り込みができます', 'Refine in item search')}</div>
+        </div>
+        <span class="srch-arrow">›</span>
+      </a>`));
+}
+
+function srchOpen() {
+  document.getElementById('srchModalOverlay').classList.add('open');
+  setTimeout(() => {
+    const input = document.getElementById('srchInput');
+    if (input) input.focus();
+  }, 50);
+}
+function srchClose() {
+  document.getElementById('srchModalOverlay').classList.remove('open');
+}
