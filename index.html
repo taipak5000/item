@@ -12,6 +12,7 @@
   <title>アイテム所持率管理</title>
   <script src="i18n.js"></script>
   <script src="profiles.js"></script>
+  <script src="cost-data.js"></script>
   <script>if (CURRENT_LANG === 'en') document.title = 'Item Collection Tracker';</script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -589,6 +590,55 @@
     }
     .gs-fav-btn.is-fav { color: #FFCC00; text-shadow: 0 0 2px rgba(255,180,0,0.4); }
     .gs-fav-btn:active { transform: scale(1.25); }
+    .gs-wish-btn {
+      font-size: 16px; line-height: 1; padding: 4px; flex-shrink: 0;
+      color: var(--text-3); transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+      filter: grayscale(1) opacity(0.45);
+    }
+    .gs-wish-btn.is-wish { filter: none; }
+    .gs-wish-btn:active { transform: scale(1.25); }
+
+    /* ── 🛒 ウィッシュリスト・アンロック計算機 ── */
+    .wish-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 0; border-bottom: 0.5px solid var(--sep);
+    }
+    .wish-row:last-child { border-bottom: none; }
+    .wish-row.owned-item { opacity: 0.5; }
+    .wish-icon {
+      width: 34px; height: 34px; background: var(--bg); border-radius: 9px;
+      display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0;
+      overflow: hidden;
+    }
+    .wish-icon img { width: 100%; height: 100%; object-fit: contain; padding: 10%; display: block; }
+    .wish-info { flex: 1; min-width: 0; }
+    .wish-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wish-meta { font-size: 10.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wish-cost { font-size: 12.5px; font-weight: 700; flex-shrink: 0; text-align: right; }
+    .wish-cost.money { color: var(--orange-d); }
+    .wish-cost.unknown { color: var(--text-3); font-weight: 500; }
+    .wish-remove {
+      flex-shrink: 0; color: var(--text-3); font-size: 15px; padding: 4px 6px;
+      border-radius: 8px; line-height: 1;
+    }
+    .wish-remove:active { background: var(--sep); }
+    .wish-total-box {
+      background: var(--bg); border-radius: var(--r-sm); padding: 12px 14px; margin-top: 12px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .wish-total-row { display: flex; justify-content: space-between; font-size: 13px; }
+    .wish-total-row b { font-size: 14px; }
+    .wish-total-row .lack { color: var(--red, #FF3B30); font-weight: 700; }
+    .wish-total-row .enough { color: var(--green); font-weight: 700; }
+    .wish-own-inputs { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .wish-own-inputs label {
+      display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2);
+    }
+    .wish-own-inputs input {
+      width: 76px; background: var(--bg); border: 1px solid var(--sep); border-radius: 8px;
+      padding: 7px 9px; font-size: 13px; color: var(--text); font-family: inherit; outline: none;
+      text-align: right;
+    }
 
     /* ── Export card（画像保存用・非表示要素） ──── */
     .export-card {
@@ -923,6 +973,11 @@
     <span class="feature-label" data-i18n-en="Item Cost Breakdown">アイテム別コスト</span>
     <span class="feature-desc" data-i18n-en="Check the actual acquisition cost of owned items (Candles, Wax, Hearts, real currency)">所持アイテムの実際の入手コスト（キャンドル・星のキャンドル・ハート・実額）を確認できます</span>
   </a>
+  <button class="feature-btn" onclick="openWishList()">
+    <span class="feature-icon">🛒</span>
+    <span class="feature-label" data-i18n-en="Wishlist &amp; Unlock Calculator">ウィッシュリスト・必要コスト計算</span>
+    <span class="feature-desc" data-i18n-en="Pick items you want (🛒 in Item Search) and see the total Candles/Hearts/price you still need">欲しいアイテムを🛒登録すると、必要なキャンドル・ハート・課金額の合計と不足数を自動計算します</span>
+  </button>
 
   <!-- ▸ 達成率シェア -->
   <p class="sec-label" data-i18n-en="Share Your Completion Rate">達成率をシェア</p>
@@ -1079,6 +1134,23 @@
       <span class="gs-result-count" id="gsResultCount"></span>
     </div>
     <div id="gsResults"><!-- JS --></div>
+  </div>
+</div>
+
+<!-- ▸ Modal: ウィッシュリスト・アンロック計算機 -->
+<div class="modal-overlay" id="wishModal" onclick="if(event.target===this)closeModal('wishModal')">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title" data-i18n-en="🛒 Wishlist &amp; Cost Calculator">🛒 ウィッシュリスト・必要コスト計算</span>
+      <button class="modal-close" onclick="closeModal('wishModal')">✕</button>
+    </div>
+
+    <div class="hint" style="margin-top:0;">
+      <span>💡</span>
+      <span data-i18n-en="Add items with the 🛒 button in Item Search. Items you mark as owned are automatically excluded from the totals.">「アイテム検索」の🛒ボタンで追加できます。入手済みにしたアイテムは自動で合計から外れます</span>
+    </div>
+
+    <div id="wishListBody"><!-- JS --></div>
   </div>
 </div>
 
@@ -1604,6 +1676,7 @@ function renderGlobalSearch() {
     if (!cat) return '';
     const isOwned = !!getState(item.catKey).owned[item.id];
     const isFav   = !!getState(item.catKey).fav[item.id];
+    const isWish  = isWishItem(item.catKey, item.id);
     const wikiUrl = `https://www.google.com/search?q=${encodeURIComponent(trItem(item) + ' Sky')}`;
     return `
       <div class="rand-row" id="gsrow_${cat.key}_${item.id}">
@@ -1615,6 +1688,7 @@ function renderGlobalSearch() {
                onclick="event.stopPropagation()">${escapeHtml(trItem(item))}</a>
           </div>
         </div>
+        <button class="gs-wish-btn ${isWish ? 'is-wish' : ''}" onclick="toggleWishFromSearch('${cat.key}','${item.id}', this)" aria-label="${CURRENT_LANG === 'en' ? 'Wishlist' : 'ウィッシュリスト'}" title="${CURRENT_LANG === 'en' ? 'Add to wishlist' : 'ウィッシュリストに追加'}">🛒</button>
         <button class="gs-fav-btn ${isFav ? 'is-fav' : ''}" onclick="toggleFavFromSearch('${cat.key}','${item.id}', this)" aria-label="${CURRENT_LANG === 'en' ? 'Favorite' : 'お気に入り'}">${isFav ? '★' : '☆'}</button>
         <div class="gs-owned-dot ${isOwned ? 'owned' : ''}" onclick="toggleOwnedFromSearch('${cat.key}','${item.id}')" role="button" aria-label="${CURRENT_LANG === 'en' ? 'Toggle ownership status' : '所持状態を切り替える'}">${isOwned ? '✓' : ''}</div>
       </div>`;
@@ -1695,6 +1769,167 @@ function toggleFavFromSearch(catKey, itemId, btnEl) {
     btnEl.classList.toggle('is-fav', nowFav);
     btnEl.textContent = nowFav ? '★' : '☆';
   }
+}
+
+/* ================================================================
+   🛒 ウィッシュリスト・必要コスト計算
+   お気に入り（★）とは別の「これから入手したい」リスト。
+   コストは cost-data.js（item_cost.htmlと共通のWiki準拠データ）から引く。
+   ================================================================ */
+
+// localStorage キー: wish_<catKey> = JSON array of item IDs（プロフィール別に nsKey で名前空間化）
+function getWishIds(catKey) {
+  try { return JSON.parse(localStorage.getItem(nsKey('wish_' + catKey))) || []; }
+  catch { return []; }
+}
+
+function isWishItem(catKey, itemId) {
+  return getWishIds(catKey).includes(String(itemId));
+}
+
+function toggleWishFromSearch(catKey, itemId, btnEl) {
+  const id = String(itemId);
+  const wishes = getWishIds(catKey);
+  const idx = wishes.indexOf(id);
+  if (idx === -1) wishes.push(id); else wishes.splice(idx, 1);
+  localStorage.setItem(nsKey('wish_' + catKey), JSON.stringify(wishes));
+  if (btnEl) btnEl.classList.toggle('is-wish', idx === -1);
+  showToast(idx === -1
+    ? (CURRENT_LANG === 'en' ? 'Added to wishlist' : 'ウィッシュリストに追加しました')
+    : (CURRENT_LANG === 'en' ? 'Removed from wishlist' : 'ウィッシュリストから外しました'));
+}
+
+function removeWishItem(catKey, itemId) {
+  const wishes = getWishIds(catKey).filter(id => id !== String(itemId));
+  localStorage.setItem(nsKey('wish_' + catKey), JSON.stringify(wishes));
+  renderWishList();
+}
+
+// cost-data.js からアイテムのコスト情報を取得（無ければ null）
+function getItemCost(catKey, itemId) {
+  const list = (typeof ITEM_COST_DATA !== 'undefined' && ITEM_COST_DATA[catKey]) || [];
+  const entry = list.find(e => e.id === itemId);
+  return entry ? entry.cost : null;
+}
+
+// 所持通貨の保存（プロフィール別）
+function getWishOwnCurrency() {
+  try { return JSON.parse(localStorage.getItem(nsKey('wishOwnCurrency'))) || { candle: 0, heart: 0 }; }
+  catch { return { candle: 0, heart: 0 }; }
+}
+
+function saveWishOwnCurrency() {
+  const candle = Math.max(0, Number(document.getElementById('wishOwnCandle')?.value) || 0);
+  const heart = Math.max(0, Number(document.getElementById('wishOwnHeart')?.value) || 0);
+  localStorage.setItem(nsKey('wishOwnCurrency'), JSON.stringify({ candle, heart }));
+  renderWishList();
+}
+
+async function openWishList() {
+  openModal('wishModal');
+  const body = document.getElementById('wishListBody');
+  if (!allItemsCache) {
+    body.innerHTML = CURRENT_LANG === 'en'
+      ? `<div class="empty-msg">Loading…</div>`
+      : `<div class="empty-msg">読み込み中…</div>`;
+    try { await loadAllItemsOnce(); } catch (e) {
+      console.error(e);
+      body.innerHTML = CURRENT_LANG === 'en'
+        ? `<div class="empty-msg">Failed to load. Please open this on the published site.</div>`
+        : `<div class="empty-msg">読み込みに失敗しました。GitHub Pages公開後のURLでお試しください。</div>`;
+      return;
+    }
+  }
+  renderWishList();
+}
+
+// コストの表示文字列（種別ごとにアイコンを変える）
+function wishCostHtml(cost) {
+  if (!cost) return `<span class="wish-cost unknown">${CURRENT_LANG === 'en' ? 'No data' : 'データなし'}</span>`;
+  switch (cost.type) {
+    case 'candle': return `<span class="wish-cost">🕯️ ${cost.value}</span>`;
+    case 'heart':  return `<span class="wish-cost">💗 ${cost.value}</span>`;
+    case 'money':  return `<span class="wish-cost money">💴 ¥${Number(cost.value).toLocaleString()}</span>`;
+    case 'ticket': return `<span class="wish-cost unknown">🎫 ${CURRENT_LANG === 'en' ? 'Ticket' : 'チケット'}</span>`;
+    case 'na':     return `<span class="wish-cost unknown">${CURRENT_LANG === 'en' ? 'Pass/UG item' : 'パス・究極系'}</span>`;
+    default:       return `<span class="wish-cost unknown">${CURRENT_LANG === 'en' ? 'Unknown' : '価格不明'}</span>`;
+  }
+}
+
+function renderWishList() {
+  const body = document.getElementById('wishListBody');
+  if (!body || !allItemsCache) return;
+
+  const stateCache = {};
+  const getState = catKey => stateCache[catKey] || (stateCache[catKey] = readCatState(catKey));
+
+  // 全カテゴリのウィッシュ登録アイテムを集める
+  const rows = [];
+  CATS.forEach(cat => {
+    getWishIds(cat.key).forEach(id => {
+      const item = allItemsCache.find(it => it.catKey === cat.key && it.id === id);
+      if (!item) return;
+      rows.push({ cat, item, owned: !!getState(cat.key).owned[id], cost: getItemCost(cat.key, id) });
+    });
+  });
+
+  if (rows.length === 0) {
+    body.innerHTML = CURRENT_LANG === 'en'
+      ? `<div class="empty-msg">Your wishlist is empty.<br>Add items with the 🛒 button in Item Search.</div>`
+      : `<div class="empty-msg">ウィッシュリストは空です。<br>「アイテム検索」の🛒ボタンで追加できます。</div>`;
+    return;
+  }
+
+  // 合計（入手済みは除外）
+  let sumCandle = 0, sumHeart = 0, sumMoney = 0, unknownCount = 0, ownedCount = 0;
+  rows.forEach(r => {
+    if (r.owned) { ownedCount++; return; }
+    if (!r.cost) { unknownCount++; return; }
+    if (r.cost.type === 'candle') sumCandle += Number(r.cost.value) || 0;
+    else if (r.cost.type === 'heart') sumHeart += Number(r.cost.value) || 0;
+    else if (r.cost.type === 'money') sumMoney += Number(r.cost.value) || 0;
+    else unknownCount++;
+  });
+
+  const own = getWishOwnCurrency();
+  const lackCandle = Math.max(0, sumCandle - own.candle);
+  const lackHeart = Math.max(0, sumHeart - own.heart);
+
+  const listHtml = rows.map(r => `
+    <div class="wish-row ${r.owned ? 'owned-item' : ''}">
+      <div class="wish-icon">${itemIconHtml(r.cat, r.item)}</div>
+      <div class="wish-info">
+        <div class="wish-name">${escapeHtml(trItem(r.item))}${r.owned ? (CURRENT_LANG === 'en' ? ' ✓Owned' : ' ✓入手済み') : ''}</div>
+        <div class="wish-meta">${escapeHtml(trCat(r.cat.name))} ・ ${escapeHtml(trEvent(r.item.event))}</div>
+      </div>
+      ${wishCostHtml(r.cost)}
+      <button class="wish-remove" onclick="removeWishItem('${r.cat.key}','${r.item.id}')" aria-label="${CURRENT_LANG === 'en' ? 'Remove' : '削除'}">✕</button>
+    </div>`).join('');
+
+  const en = CURRENT_LANG === 'en';
+  body.innerHTML = `
+    <div style="margin-top:10px;">${listHtml}</div>
+
+    <div class="wish-own-inputs">
+      <label>🕯️ ${en ? 'Owned Candles' : '所持キャンドル'}
+        <input type="number" id="wishOwnCandle" min="0" value="${own.candle}" onchange="saveWishOwnCurrency()">
+      </label>
+      <label>💗 ${en ? 'Owned Hearts' : '所持ハート'}
+        <input type="number" id="wishOwnHeart" min="0" value="${own.heart}" onchange="saveWishOwnCurrency()">
+      </label>
+    </div>
+
+    <div class="wish-total-box">
+      <div class="wish-total-row"><span>🕯️ ${en ? 'Candles needed' : '必要キャンドル合計'}</span><b>${sumCandle}</b></div>
+      <div class="wish-total-row"><span>　→ ${en ? 'Still short' : 'あと'}</span>
+        <b class="${lackCandle > 0 ? 'lack' : 'enough'}">${lackCandle > 0 ? lackCandle + (en ? '' : ' 本') : (en ? 'Enough! ✓' : '足りています ✓')}</b></div>
+      <div class="wish-total-row"><span>💗 ${en ? 'Hearts needed' : '必要ハート合計'}</span><b>${sumHeart}</b></div>
+      <div class="wish-total-row"><span>　→ ${en ? 'Still short' : 'あと'}</span>
+        <b class="${lackHeart > 0 ? 'lack' : 'enough'}">${lackHeart > 0 ? lackHeart + (en ? '' : ' 個') : (en ? 'Enough! ✓' : '足りています ✓')}</b></div>
+      ${sumMoney > 0 ? `<div class="wish-total-row"><span>💴 ${en ? 'Real money total' : '課金合計'}</span><b>¥${sumMoney.toLocaleString()}</b></div>` : ''}
+      ${unknownCount > 0 ? `<div class="wish-total-row"><span>❔ ${en ? 'No price data' : '価格不明・対象外'}</span><b>${unknownCount}${en ? '' : ' 件'}</b></div>` : ''}
+      ${ownedCount > 0 ? `<div class="wish-total-row" style="color:var(--text-2);"><span>✓ ${en ? 'Already owned (excluded)' : '入手済み（合計から除外）'}</span><b>${ownedCount}${en ? '' : ' 件'}</b></div>` : ''}
+    </div>`;
 }
 
 /* ================================================================
