@@ -355,7 +355,10 @@ function getAllItems() {
   const acquireEligibleTypes = ['candle', 'starCandle', 'heart'];
   all.forEach(item => {
     item.seasonPendantOwned = pendantOwnedSeasons.has(extractSource(item.source)) && acquireEligibleTypes.includes(item.cost.type);
-    item.acquireMode = acquireMap[item.id] || 'revisit';
+    item.isTicketItem = item.cost.type === 'ticket';
+    // ペンダント経由の季節中入手は「revisit」がデフォルト（従来通り）、
+    // チケット交換アイテムは「ticket」（チケットで入手＝0扱い）がデフォルト
+    item.acquireMode = acquireMap[item.id] || (item.isTicketItem ? 'ticket' : 'revisit');
   });
 
   return all;
@@ -382,18 +385,34 @@ function renderItemCard(item, owned) {
   if (item.dye) badges.push(`<span class="item-badge dye-yes">${CURRENT_LANG === 'en' ? 'Dyeable' : '染色〇'}</span>`);
   if (item.limited) badges.push(`<span class="item-badge limited">${CURRENT_LANG === 'en' ? 'No Re-release' : '復刻なし'}</span>`);
 
-  const costClass = item.cost.type === 'money' ? 'money' : (item.cost.type === 'unknown' || item.cost.type === 'na' || item.cost.type === 'ticket' ? 'unknown' : '');
   const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + '　Sky')}`;
   const imgSrc = `images/${item.catKey}/${item.id}.png`;
 
-  const showAcquireToggle = owned && item.seasonPendantOwned;
-  const isFree = showAcquireToggle && item.acquireMode === 'inSeason';
-  const costDisplay = isFree ? costHtml({ ...item.cost, value: 0 }) : costHtml(item.cost);
-  const acquireToggleHtml = showAcquireToggle ? `
+  const showPendantToggle = owned && item.seasonPendantOwned;
+  const showTicketToggle = owned && item.isTicketItem;
+  const showAcquireToggle = showPendantToggle || showTicketToggle;
+
+  let costDisplay, costClass, acquireToggleHtml;
+  if (showTicketToggle) {
+    const useRevisit = item.acquireMode === 'revisit';
+    const displayCost = useRevisit ? (item.revisitCost || { type: 'unknown' }) : item.cost;
+    costDisplay = costHtml(displayCost);
+    costClass = displayCost.type === 'money' ? 'money' : 'unknown';
+    acquireToggleHtml = `
+      <div class="acquire-toggle">
+        <button type="button" class="acquire-btn ${!useRevisit ? 'active free' : ''}" onclick="setSeasonAcquire('${item.id}', 'ticket')">🎫 ${CURRENT_LANG === 'en' ? 'Obtained via ticket (counts as 0)' : 'チケットで入手（0扱い）'}</button>
+        <button type="button" class="acquire-btn ${useRevisit ? 'active' : ''}" onclick="setSeasonAcquire('${item.id}', 'revisit')">🔁 ${CURRENT_LANG === 'en' ? 'Obtained via revisit (revisit price)' : '復刻で入手（復刻の価格）'}</button>
+      </div>`;
+  } else {
+    costClass = item.cost.type === 'money' ? 'money' : (item.cost.type === 'unknown' || item.cost.type === 'na' || item.cost.type === 'ticket' ? 'unknown' : '');
+    const isFree = showPendantToggle && item.acquireMode === 'inSeason';
+    costDisplay = isFree ? costHtml({ ...item.cost, value: 0 }) : costHtml(item.cost);
+    acquireToggleHtml = showPendantToggle ? `
       <div class="acquire-toggle">
         <button type="button" class="acquire-btn ${isFree ? 'active free' : ''}" onclick="setSeasonAcquire('${item.id}', 'inSeason')">${CURRENT_LANG === 'en' ? 'Acquired in-season (counts as 0)' : '季節中に入手（0扱い）'}</button>
         <button type="button" class="acquire-btn ${!isFree ? 'active' : ''}" onclick="setSeasonAcquire('${item.id}', 'revisit')">${CURRENT_LANG === 'en' ? 'Acquired out-of-season/revisit (listed cost)' : '季節外・再訪で入手（記載コスト）'}</button>
       </div>` : '';
+  }
 
   return `
     <div class="item-card ${owned ? 'owned' : ''}">
@@ -409,7 +428,10 @@ function renderItemCard(item, owned) {
         <div class="item-cost ${costClass}">${costDisplay}</div>
       </div>
       ${badges.length ? `<div class="item-badges">${badges.join('')}</div>` : ''}
-      ${item.cost.note ? `<div class="item-note">※ ${escapeHtml(item.cost.note)}</div>` : ''}
+      ${(() => {
+        const noteSource = (showTicketToggle && item.acquireMode === 'revisit') ? (item.revisitCost && item.revisitCost.note) : item.cost.note;
+        return noteSource ? `<div class="item-note">※ ${escapeHtml(noteSource)}</div>` : '';
+      })()}
       ${acquireToggleHtml}
     </div>`;
 }
@@ -505,7 +527,8 @@ function renderSummary(items) {
     if (!item.owned) return;
     ownedCount++;
     if (item.seasonPendantOwned && item.acquireMode === 'inSeason') return; // 季節中入手扱いのためコスト計算から除外
-    const cost = item.cost;
+    if (item.isTicketItem && item.acquireMode !== 'revisit') return; // チケットで入手扱い（0）のためコスト計算から除外
+    const cost = item.isTicketItem ? (item.revisitCost || {}) : item.cost;
     if (cost.type === 'candle' && typeof cost.value === 'number') candleSum += cost.value;
     else if (cost.type === 'starCandle' && typeof cost.value === 'number') starCandleSum += cost.value;
     else if (cost.type === 'heart' && typeof cost.value === 'number') heartSum += cost.value;
