@@ -312,6 +312,7 @@ function pfInit() {
         'プロフィールを切り替えると、所持アイテム・マイコーデ・お気に入りが切り替え先のプロフィールのものに入れ替わります（このブラウザ内にすべて保存されます）。',
         'Switching profiles swaps your owned items, My Coords, and favorites to the selected profile\'s data (everything is stored locally in this browser).'
       )}</div>
+      <button type="button" class="pf-icon-btn" style="width:100%; margin-top:10px; padding:8px;" onclick="dmOpenModal()">💾 ${pfT('データのバックアップ・復元・削除','Backup / restore / erase data')}</button>
       <button type="button" class="pf-close-btn" onclick="pfCloseModal()">${pfT('閉じる','Close')}</button>
     </div>`;
   document.body.appendChild(overlay);
@@ -329,6 +330,144 @@ function pfInit() {
       <button type="button" class="pf-close-btn" onclick="srchClose()">${pfT('閉じる', 'Close')}</button>
     </div>`;
   document.body.appendChild(searchOverlay);
+
+  const dmOverlay = document.createElement('div');
+  dmOverlay.className = 'pf-modal-overlay';
+  dmOverlay.id = 'dmModalOverlay';
+  dmOverlay.onclick = (e) => { if (e.target === dmOverlay) dmCloseModal(); };
+  dmOverlay.innerHTML = `
+    <div class="pf-modal-card">
+      <h3>💾 ${pfT('データのバックアップ・復元・削除', 'Backup / Restore / Erase Data')}</h3>
+      <div class="pf-hint" style="margin:0 0 14px;">${pfT(
+        'このブラウザに保存されている taipak5000.github.io 系ツール（item・wings・companion・spirit-catalog 等）のデータをまとめて書き出し・読み込み・削除できます。全プロフィール分がまとめて対象になります。',
+        'Back up, restore, or erase all locally-stored data for the taipak5000.github.io tool suite (item, wings, companion, spirit-catalog, etc.) at once. This covers all profiles together.'
+      )}</div>
+      <button type="button" class="pf-add-btn" style="width:100%; margin-bottom:8px;" onclick="dmExport()">⬇️ ${pfT('データをエクスポート（ファイルに保存）','Export data (save to file)')}</button>
+      <input type="file" id="dmImportFile" accept="application/json" style="display:none" onchange="dmImportFileSelected(event)">
+      <button type="button" class="pf-icon-btn" style="width:100%; margin-bottom:8px; padding:8px;" onclick="document.getElementById('dmImportFile').click()">⬆️ ${pfT('ファイルからインポート','Import from file')}</button>
+      <div id="dmImportConfirmArea"></div>
+      <div id="dmWipeArea">
+        <button type="button" class="pf-icon-btn pf-row-btn-danger" style="width:100%; padding:8px;" onclick="dmStartWipe()">🗑️ ${pfT('全データを削除','Erase all data')}</button>
+      </div>
+      <div id="dmStatus" class="pf-hint"></div>
+      <button type="button" class="pf-close-btn" onclick="dmCloseModal()">${pfT('閉じる', 'Close')}</button>
+    </div>`;
+  document.body.appendChild(dmOverlay);
+}
+
+/* ================================================================
+   💾 データのエクスポート/インポート/全削除
+   localStorage は taipak5000.github.io 配下の全ツールで共有されているため、
+   ここで書き出す/読み込む/消す内容はこのサイトだけでなく item・wings・
+   companion・spirit-catalog 等すべてのデータが対象になる。
+   ================================================================ */
+function dmOpenModal() {
+  document.getElementById('dmStatus').textContent = '';
+  document.getElementById('dmImportConfirmArea').innerHTML = '';
+  dmWipeConfirming = false;
+  dmRenderWipeArea();
+  document.getElementById('dmModalOverlay').classList.add('open');
+}
+function dmCloseModal() {
+  document.getElementById('dmModalOverlay').classList.remove('open');
+}
+
+function dmExport() {
+  const dump = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    dump[key] = localStorage.getItem(key);
+  }
+  const payload = {
+    exportedFrom: 'taipak5000.github.io',
+    exportedAt: new Date().toISOString(),
+    data: dump
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `sky-tools-backup_${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  document.getElementById('dmStatus').textContent = pfT(
+    `書き出しました（${Object.keys(dump).length}件のキー）。`,
+    `Exported (${Object.keys(dump).length} keys).`
+  );
+}
+
+let dmPendingImport = null;
+function dmImportFileSelected(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try { parsed = JSON.parse(reader.result); } catch (e) {
+      document.getElementById('dmStatus').textContent = pfT('ファイルの読み込みに失敗しました（JSON形式ではありません）。', 'Failed to read file (not valid JSON).');
+      return;
+    }
+    const data = parsed && parsed.data && typeof parsed.data === 'object' ? parsed.data : null;
+    if (!data) {
+      document.getElementById('dmStatus').textContent = pfT('このツールで書き出したファイルではないようです。', "This doesn't look like a file exported from this tool.");
+      return;
+    }
+    dmPendingImport = data;
+    const count = Object.keys(data).length;
+    document.getElementById('dmImportConfirmArea').innerHTML = `
+      <div class="pf-row" style="flex-wrap: wrap;">
+        <span class="pf-row-confirm-text">${pfT(
+          `${count}件のキーをインポートします。現在保存されているデータは上書きされます（インポートするファイルに無いキーはそのまま残ります）。よろしいですか？`,
+          `Import ${count} keys? Currently stored data will be overwritten for matching keys (keys not present in the file are left as-is). Continue?`
+        )}</span>
+        <button type="button" class="pf-icon-btn pf-row-btn-ok" onclick="dmConfirmImport()">${pfT('インポート実行','Import')}</button>
+        <button type="button" class="pf-icon-btn" onclick="dmCancelImport()">${pfT('取消','Cancel')}</button>
+      </div>`;
+  };
+  reader.readAsText(file);
+}
+function dmCancelImport() {
+  dmPendingImport = null;
+  document.getElementById('dmImportConfirmArea').innerHTML = '';
+}
+function dmConfirmImport() {
+  if (!dmPendingImport) return;
+  Object.keys(dmPendingImport).forEach(key => {
+    localStorage.setItem(key, dmPendingImport[key]);
+  });
+  dmPendingImport = null;
+  document.getElementById('dmImportConfirmArea').innerHTML = '';
+  document.getElementById('dmStatus').textContent = pfT('インポートしました。ページを再読み込みします…', 'Imported. Reloading…');
+  setTimeout(() => location.reload(), 800);
+}
+
+let dmWipeConfirming = false;
+function dmRenderWipeArea() {
+  const area = document.getElementById('dmWipeArea');
+  if (!dmWipeConfirming) {
+    area.innerHTML = `<button type="button" class="pf-icon-btn pf-row-btn-danger" style="width:100%; padding:8px;" onclick="dmStartWipe()">🗑️ ${pfT('全データを削除','Erase all data')}</button>`;
+    return;
+  }
+  area.innerHTML = `
+    <div class="pf-row" style="flex-wrap: wrap;">
+      <span class="pf-row-confirm-text">${pfT(
+        'すべてのプロフィール・所持アイテム・お気に入り・精霊ツリーの進捗など、このブラウザに保存されている全データを削除します。この操作は取り消せません。先にエクスポートしておくことをおすすめします。本当に削除しますか？',
+        'This will erase ALL locally stored data (profiles, owned items, favorites, spirit tree progress, etc.) across the whole tool suite. This cannot be undone. Exporting a backup first is recommended. Really erase everything?'
+      )}</span>
+      <button type="button" class="pf-icon-btn pf-row-btn-danger" onclick="dmConfirmWipe()">${pfT('完全に削除する','Erase everything')}</button>
+      <button type="button" class="pf-icon-btn" onclick="dmCancelWipe()">${pfT('取消','Cancel')}</button>
+    </div>`;
+}
+function dmStartWipe() { dmWipeConfirming = true; dmRenderWipeArea(); }
+function dmCancelWipe() { dmWipeConfirming = false; dmRenderWipeArea(); }
+function dmConfirmWipe() {
+  localStorage.clear();
+  document.getElementById('dmStatus').textContent = pfT('削除しました。ページを再読み込みします…', 'Erased. Reloading…');
+  setTimeout(() => location.reload(), 800);
 }
 
 document.addEventListener('DOMContentLoaded', pfInit);
