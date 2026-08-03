@@ -142,6 +142,14 @@ function pfInjectStyle() {
     .pf-row-btn-ok { background: var(--blue); color: #fff; border: none; }
     .pf-row-btn-danger { background: #ff3b30; color: #fff; border: none; }
 
+    .pf-currency-section { margin-top: 14px; padding-top: 14px; border-top: 0.5px solid var(--sep); }
+    .pf-currency-title { font-size: 12px; font-weight: 700; color: var(--text-2); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .pf-currency-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 2px; }
+    .pf-currency-label { font-size: 13px; color: var(--text); }
+    .pf-currency-input { width: 90px; background: var(--bg); border: 1px solid var(--sep); border-radius: 6px;
+      padding: 6px 8px; font-size: 14px; color: var(--text); font-family: inherit; outline: none; box-sizing: border-box; text-align: right; }
+    .pf-currency-input:focus { border-color: var(--blue); }
+
     .srch-modal-card { max-width: 420px; }
     .srch-input { width: 100%; box-sizing: border-box; background: var(--bg); border: 1px solid var(--sep);
       border-radius: var(--r-sm); padding: 10px 12px; font-size: 15px; font-family: inherit; color: var(--text); outline: none; }
@@ -187,10 +195,93 @@ function escapeHtmlPf(str) {
 let pfEditingId = null;
 let pfDeletingId = null;
 
+/* ================================================================
+   💰 所持通貨の統一管理（プロフィール切替モーダル内、全サイト共通）
+   candle/heartはitem自身のwishOwnCurrencyを、seasonCandleはcompanionの
+   記録データを直接読み書きし、二重管理を避ける。昇華キャンドル・
+   シーズンハート・イベント通貨はどのサイトにも記録先が無いため、
+   新規キー（skyCurrencyExtra_v1）で管理する。
+   ================================================================ */
+const PF_CURRENCY_FIELDS = [
+  { key: 'candle',         icon: '🕯️' },
+  { key: 'heart',          icon: '💗' },
+  { key: 'ascendedCandle', icon: '🕯️✨' },
+  { key: 'seasonCandle',   icon: '🕯️🍂' },
+  { key: 'seasonHeart',    icon: '💗🍂' },
+  { key: 'eventCurrency',  icon: '🎫' },
+];
+function pfCurrencyLabel(key) {
+  const labels = {
+    candle:         ['キャンドル', 'Candles'],
+    heart:          ['ハート', 'Hearts'],
+    ascendedCandle: ['昇華キャンドル', 'Ascended Candles'],
+    seasonCandle:   ['シーズンキャンドル', 'Season Candles'],
+    seasonHeart:    ['シーズンハート', 'Season Hearts'],
+    eventCurrency:  ['イベント通貨', 'Event Currency'],
+  };
+  const l = labels[key] || [key, key];
+  return pfT(l[0], l[1]);
+}
+function pfCompanionDataKey() {
+  const id = getActiveProfileId();
+  return id === DEFAULT_PROFILE_ID ? 'sky_companion_v4_data' : ('sky_companion_v4_data__' + id);
+}
+function pfLoadCurrency() {
+  let wish;
+  try { wish = JSON.parse(localStorage.getItem(nsKey('wishOwnCurrency'))) || {}; } catch (_) { wish = {}; }
+  let companionData;
+  try { companionData = JSON.parse(localStorage.getItem(pfCompanionDataKey())) || {}; } catch (_) { companionData = {}; }
+  let extra;
+  try { extra = JSON.parse(localStorage.getItem(nsKey('skyCurrencyExtra_v1'))) || {}; } catch (_) { extra = {}; }
+  return {
+    candle: wish.candle || 0,
+    heart: wish.heart || 0,
+    seasonCandle: companionData.ownedCandles || 0,
+    ascendedCandle: extra.ascendedCandle || 0,
+    seasonHeart: extra.seasonHeart || 0,
+    eventCurrency: extra.eventCurrency || 0,
+  };
+}
+function pfSaveCurrencyField(field, rawValue) {
+  const n = Math.max(0, Number(rawValue) || 0);
+  if (field === 'candle' || field === 'heart') {
+    const key = nsKey('wishOwnCurrency');
+    let wish;
+    try { wish = JSON.parse(localStorage.getItem(key)) || {}; } catch (_) { wish = {}; }
+    wish[field] = n;
+    localStorage.setItem(key, JSON.stringify(wish));
+    if (typeof renderWishList === 'function') renderWishList();
+  } else if (field === 'seasonCandle') {
+    const key = pfCompanionDataKey();
+    let data;
+    try { data = JSON.parse(localStorage.getItem(key)) || {}; } catch (_) { data = {}; }
+    data.ownedCandles = n;
+    localStorage.setItem(key, JSON.stringify(data));
+  } else {
+    const key = nsKey('skyCurrencyExtra_v1');
+    let extra;
+    try { extra = JSON.parse(localStorage.getItem(key)) || {}; } catch (_) { extra = {}; }
+    extra[field] = n;
+    localStorage.setItem(key, JSON.stringify(extra));
+  }
+}
+function pfRenderCurrency() {
+  const body = document.getElementById('pfCurrencyBody');
+  if (!body) return;
+  const c = pfLoadCurrency();
+  body.innerHTML = PF_CURRENCY_FIELDS.map(f => `
+    <div class="pf-currency-row">
+      <span class="pf-currency-label">${f.icon} ${pfCurrencyLabel(f.key)}</span>
+      <input type="number" min="0" class="pf-currency-input" value="${c[f.key]}"
+        onchange="pfSaveCurrencyField('${f.key}', this.value)">
+    </div>`).join('');
+}
+
 function pfOpenModal() {
   pfEditingId = null;
   pfDeletingId = null;
   pfRenderModal();
+  pfRenderCurrency();
   document.getElementById('pfModalOverlay').classList.add('open');
 }
 function pfCloseModal() {
@@ -312,6 +403,10 @@ function pfInit() {
         'プロフィールを切り替えると、所持アイテム・マイコーデ・お気に入りが切り替え先のプロフィールのものに入れ替わります（このブラウザ内にすべて保存されます）。',
         'Switching profiles swaps your owned items, My Coords, and favorites to the selected profile\'s data (everything is stored locally in this browser).'
       )}</div>
+      <div class="pf-currency-section">
+        <div class="pf-currency-title">💰 ${pfT('所持通貨', 'Owned Currency')}</div>
+        <div id="pfCurrencyBody"></div>
+      </div>
       <button type="button" class="pf-icon-btn" style="width:100%; margin-top:10px; padding:8px;" onclick="dmOpenModal()">💾 ${pfT('データのバックアップ・復元・削除','Backup / restore / erase data')}</button>
       <button type="button" class="pf-close-btn" onclick="pfCloseModal()">${pfT('閉じる','Close')}</button>
     </div>`;
@@ -511,24 +606,24 @@ async function srchBuildIndex() {
   // 1) アイテム（item自身の12カテゴリページから抽出）
   await Promise.all(SRCH_ITEM_CATS.map(async cat => {
     try {
-      const res = await fetch(`${SITE_ROOT}/item/${cat.file}`);
+      const res = await fetch(`${SITE_ROOT}/m/${cat.file}`);
       const html = await res.text();
       const data = srchExtractArray(html, 'ITEMS_DATA') || [];
       data.forEach(it => idx.items.push({
         name: it.name, nameEn: it.nameEn || '', event: it.event || '',
-        catName: cat.name, url: `${SITE_ROOT}/item/${cat.file}`,
-        img: `${SITE_ROOT}/item/images/${cat.key}/${it.id}.png`
+        catName: cat.name, url: `${SITE_ROOT}/m/${cat.file}`,
+        img: `${SITE_ROOT}/m/images/${cat.key}/${it.id}.png`
       }));
     } catch (e) { console.error(cat.key, e); }
   }));
 
   // 2) エモート（他サイトがまだ公開されていなければ0件のまま）
   try {
-    const res = await fetch(`${SITE_ROOT}/emote/index.html`);
+    const res = await fetch(`${SITE_ROOT}/e/index.html`);
     const html = await res.text();
     (srchExtractArray(html, 'EMOTES_DATA') || []).forEach(em => idx.emotes.push({
       name: em.name, nameEn: em.nameEn || '', location: em.location || '',
-      maxLevel: em.maxLevel, url: `${SITE_ROOT}/emote/`
+      maxLevel: em.maxLevel, url: `${SITE_ROOT}/e/`
     }));
   } catch (e) { console.error('emote', e); }
 
@@ -546,7 +641,7 @@ async function srchBuildIndex() {
   // 4) 季節・イベント名（アイテムに登場する全イベント名）
   const evSet = new Set();
   idx.items.forEach(it => { if (it.event) evSet.add(it.event); });
-  idx.events = [...evSet].map(name => ({ name, url: `${SITE_ROOT}/item/index.html` }));
+  idx.events = [...evSet].map(name => ({ name, url: `${SITE_ROOT}/m/index.html` }));
 
   return idx;
 }
