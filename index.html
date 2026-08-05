@@ -1054,6 +1054,9 @@
       <button class="action-btn secondary" onclick="saveRandomAsImage()" data-i18n-en="🖼️ Save as Image">🖼️ 画像で保存</button>
       <button class="action-btn twitter"   onclick="shareRandomOnTwitter()" data-i18n-en="📤 Share on X">📤 Xでシェア</button>
     </div>
+    <div class="action-row">
+      <button class="action-btn secondary full" onclick="shareRandomCoordLink()" data-i18n-en="🔗 Share as Link (this combo, what do you think?)">🔗 リンクで共有（この組み合わせどう？）</button>
+    </div>
   </div>
 </div>
 
@@ -1090,6 +1093,20 @@
       <button class="action-btn primary full" style="margin-top:12px;" onclick="saveCreatedCoord()" data-i18n-en="Save This Coord">このコーデを保存</button>
     </div>
 
+  </div>
+</div>
+
+<!-- ▸ Modal: 共有されたコーデ（共有リンクを開いたときのプレビュー） -->
+<div class="modal-overlay" id="sharedCoordModal" onclick="if(event.target===this)closeSharedCoordModal()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title" data-i18n-en="🔗 Shared Coord">🔗 共有されたコーデ</span>
+      <button class="modal-close" onclick="closeSharedCoordModal()">✕</button>
+    </div>
+    <div id="sharedCoordBody"><!-- JS --></div>
+    <div class="action-row" style="margin-top:12px;">
+      <button class="action-btn primary full" onclick="saveSharedCoordToMyCoord()" data-i18n-en="💾 Save to My Coord">💾 マイコーデに保存</button>
+    </div>
   </div>
 </div>
 
@@ -1450,6 +1467,7 @@ preloadCatIcons();
 
 document.addEventListener('DOMContentLoaded', loadAndRender);
 document.addEventListener('DOMContentLoaded', () => buildCategoryFilterOptions());
+document.addEventListener('DOMContentLoaded', checkForSharedCoordInUrl);
 // 未登録カテゴリでも総アイテム数を表示できるよう、全カテゴリのデータをバックグラウンドで取得しておく
 // （取得できたら件数表示を更新。file:// で開いている等、失敗しても「未登録」表示に留まるだけなので無視してよい）
 document.addEventListener('DOMContentLoaded', () => {
@@ -2177,6 +2195,7 @@ function renderMyCoordList() {
             <button class="coord-icon-btn" onclick="openCoordPhotoModal(${set.id})" title="${CURRENT_LANG === 'en' ? 'Attach a Photo' : '写真を添付'}">📷</button>
             <button class="coord-icon-btn" onclick="saveMyCoordAsImage(${set.id})" title="${CURRENT_LANG === 'en' ? 'Save as Image' : '画像で保存'}">🖼️</button>
             <button class="coord-icon-btn" onclick="shareMyCoordOnTwitter(${set.id})" title="${CURRENT_LANG === 'en' ? 'Share on X' : 'Xでシェア'}">📤</button>
+            <button class="coord-icon-btn" onclick="shareMyCoordLink(${set.id})" title="${CURRENT_LANG === 'en' ? 'Share as Link' : 'リンクで共有'}">🔗</button>
             <button class="coord-icon-btn coord-del" onclick="deleteCoord(${set.id})" title="${CURRENT_LANG === 'en' ? 'Delete' : '削除'}">🗑</button>
           </div>
         </div>
@@ -2586,6 +2605,166 @@ function shareMyCoordOnTwitter(id) {
   const set = getSavedCoords().find(s => s.id === id);
   if (!set) return;
   return shareCoordImageOnX(`👗 ${set.name}`, set.items, set.name, buildMyCoordShareText(set.name), set.photoDataUrl);
+}
+
+/* ================================================================
+   🔗 コーデの共有リンク（コーデ保管庫・コーデリクエストを兼ねる）
+   コーデの中身（カテゴリ→アイテムID）だけをURLのハッシュに埋め込み、
+   リンクを開いた人はローカルストレージが無くてもプレビューできる。
+   アイテム名はcatKeyの各カテゴリページ（例: outfit.html）を取得し、
+   profiles.js の横断検索と同じ srchExtractArray() でITEMS_DATAから
+   引き当てる（所持の有無に関わらず、カタログに存在すれば表示できる
+   ＝「この組み合わせどう？」という未所持アイテムの相談にも使える）。
+   ================================================================ */
+function coordEncodeBase64Utf8(str) {
+  const uint8array = new TextEncoder().encode(str);
+  let binString = '';
+  for (let i = 0; i < uint8array.length; i++) binString += String.fromCharCode(uint8array[i]);
+  return btoa(binString);
+}
+function coordDecodeBase64Utf8(b64) {
+  const binString = atob(b64);
+  const uint8array = new Uint8Array(binString.length);
+  for (let i = 0; i < binString.length; i++) uint8array[i] = binString.charCodeAt(i);
+  return new TextDecoder().decode(uint8array);
+}
+
+function buildCoordShareUrl(items, name) {
+  const compact = {};
+  Object.entries(items).forEach(([catKey, item]) => { if (item && item.id) compact[catKey] = item.id; });
+  const payload = { n: name || '', i: compact };
+  const code = coordEncodeBase64Utf8(JSON.stringify(payload));
+  const base = location.href.split('#')[0];
+  return `${base}#coord=${encodeURIComponent(code)}`;
+}
+
+async function presentShareUrl(url, name) {
+  const shareText = CURRENT_LANG === 'en'
+    ? `Check out this coord: "${name}"! What do you think?`
+    : `「${name}」というコーデを考えてみました！どう思いますか？`;
+  if (isMobileDevice() && navigator.share) {
+    try {
+      await navigator.share({ title: name, text: shareText, url });
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      // 失敗時はコピーへフォールバック
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast(CURRENT_LANG === 'en' ? 'Link copied! Paste it anywhere to share.' : 'リンクをコピーしました！好きな場所に貼り付けて共有できます。');
+  } catch (e) {
+    openCoordLinkPreview(url);
+  }
+}
+
+// クリップボードコピーが使えない環境向けに、リンクを表示して手動コピーできるモーダルを出す
+function openCoordLinkPreview(url) {
+  let overlay = document.getElementById('coordLinkPreviewOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'coordLinkPreviewOverlay';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('open'); };
+    overlay.innerHTML = `
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="modal-title">🔗 ${CURRENT_LANG === 'en' ? 'Share Link' : '共有リンク'}</span>
+          <button class="modal-close" onclick="document.getElementById('coordLinkPreviewOverlay').classList.remove('open')">✕</button>
+        </div>
+        <textarea class="form-input" id="coordLinkPreviewText" readonly
+          style="width:100%; min-height:80px; font-size:11px; font-family:monospace; box-sizing:border-box;"
+          onclick="this.select()"></textarea>
+        <div class="hint" style="margin-top:8px;">${CURRENT_LANG === 'en'
+          ? 'Long-press or select the text above to copy it manually.'
+          : '上のテキストを長押しまたは選択してコピーしてください。'}</div>
+      </div>`;
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('coordLinkPreviewText').value = url;
+  overlay.classList.add('open');
+}
+
+function shareMyCoordLink(id) {
+  const set = getSavedCoords().find(s => s.id === id);
+  if (!set) return;
+  presentShareUrl(buildCoordShareUrl(set.items, set.name), set.name);
+}
+
+function shareRandomCoordLink() {
+  if (!currentRandom || Object.keys(currentRandom).length === 0) return;
+  const name = CURRENT_LANG === 'en' ? 'Random Coord' : 'ランダムコーデ';
+  presentShareUrl(buildCoordShareUrl(currentRandom, name), name);
+}
+
+/* ── 共有リンクを開いたときのプレビュー ── */
+let sharedCoordCache = null;
+
+async function checkForSharedCoordInUrl() {
+  const m = location.hash.match(/#coord=(.+)$/);
+  if (!m) return;
+  let payload;
+  try {
+    payload = JSON.parse(coordDecodeBase64Utf8(decodeURIComponent(m[1])));
+  } catch (e) { return; }
+  if (!payload || typeof payload.i !== 'object') return;
+
+  const catKeys = Object.keys(payload.i).filter(k => CATS.some(c => c.key === k));
+  if (catKeys.length === 0) return;
+
+  const resolvedItems = {};
+  await Promise.all(catKeys.map(async catKey => {
+    const cat = CATS.find(c => c.key === catKey);
+    const itemId = payload.i[catKey];
+    try {
+      const res = await fetch(cat.file);
+      const html = await res.text();
+      const data = srchExtractArray(html, 'ITEMS_DATA') || [];
+      const found = data.find(it => it.id === itemId);
+      if (found) resolvedItems[catKey] = found;
+    } catch (e) { /* このカテゴリだけ諦めて他は表示する */ }
+  }));
+
+  sharedCoordCache = { name: payload.n || (CURRENT_LANG === 'en' ? 'Shared Coord' : '共有されたコーデ'), items: resolvedItems };
+  renderSharedCoordModal();
+  openModal('sharedCoordModal');
+}
+
+function renderSharedCoordModal() {
+  if (!sharedCoordCache) return;
+  const rows = CATS.map(cat => {
+    const item = sharedCoordCache.items[cat.key];
+    if (!item) return '';
+    const owned = getOwnedItemsForCat(cat.key).some(o => o.id === item.id);
+    return `
+      <div class="coord-item-row">
+        <span class="coord-cat">${catIconHtml(cat)} ${trCat(cat.name)}</span>
+        <span class="coord-iname">${trItem(item)} ${owned ? '✅' : ''}</span>
+      </div>`;
+  }).join('');
+  document.getElementById('sharedCoordBody').innerHTML = `
+    <div class="coord-card">
+      <div class="coord-header"><div class="coord-title">👗 ${escapeHtml(sharedCoordCache.name)}</div></div>
+      <div class="coord-rows">${rows || `<div class="empty-msg">${CURRENT_LANG === 'en' ? 'No items could be loaded.' : 'アイテムを読み込めませんでした。'}</div>`}</div>
+    </div>
+    <div class="hint" style="margin-top:8px;">✅ ${CURRENT_LANG === 'en' ? '= you already own this' : '＝ 所持済み'}</div>
+  `;
+}
+
+function saveSharedCoordToMyCoord() {
+  if (!sharedCoordCache) return;
+  const sets = getSavedCoords();
+  sets.push({ id: Date.now(), name: sharedCoordCache.name, items: sharedCoordCache.items, createdAt: new Date().toISOString() });
+  localStorage.setItem(nsKey('myCoords'), JSON.stringify(sets));
+  showToast(CURRENT_LANG === 'en' ? 'Saved to My Coord!' : 'マイコーデに保存しました！');
+  closeSharedCoordModal();
+}
+
+function closeSharedCoordModal() {
+  closeModal('sharedCoordModal');
+  // URLのハッシュを消し、再読み込み時に同じプレビューが再表示されないようにする
+  history.replaceState(null, '', location.pathname + location.search);
 }
 
 // ── 総合達成率: 画像保存・Xシェア ──────────────
