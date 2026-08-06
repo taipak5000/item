@@ -2099,7 +2099,7 @@ function shuffleOutfit() {
         <div class="rand-info">
           <div class="rand-cat">${trCat(cat.name)}</div>
           ${picked
-            ? `<div class="rand-name">${trItem(picked)}</div>`
+            ? `<div class="rand-name">${escapeHtml(trItem(picked))}</div>`
             : `<div class="rand-empty">${CURRENT_LANG === 'en' ? 'No owned items' : '所持アイテムなし'}</div>`}
         </div>
         ${favBtn}
@@ -2143,8 +2143,12 @@ function confirmSaveRandom() {
 
 // ── マイコーデ ────────────────────────────────
 function getSavedCoords() {
-  try { return JSON.parse(localStorage.getItem(nsKey('myCoords'))) || []; }
-  catch { return []; }
+  // id は常に Date.now() の数値で生成しているため、それ以外（データ引継ぎ/バックアップの改ざん等）は
+  // 除外する。id を onclick 属性へ数値としてそのまま埋め込んでいる箇所があるため、ここで弾いておく。
+  try {
+    const list = JSON.parse(localStorage.getItem(nsKey('myCoords')));
+    return Array.isArray(list) ? list.filter(s => s && Number.isFinite(s.id)) : [];
+  } catch { return []; }
 }
 
 function openMyCoord() {
@@ -2182,7 +2186,7 @@ function renderMyCoordList() {
       if (!cat || !item) return '';
       return `<div class="coord-item-row">
         <span class="coord-cat">${catIconHtml(cat)} ${trCat(cat.name)}</span>
-        <span class="coord-iname">${trItem(item)}</span>
+        <span class="coord-iname">${escapeHtml(trItem(item))}</span>
       </div>`;
     }).join('');
 
@@ -2740,7 +2744,7 @@ function renderSharedCoordModal() {
     return `
       <div class="coord-item-row">
         <span class="coord-cat">${catIconHtml(cat)} ${trCat(cat.name)}</span>
-        <span class="coord-iname">${trItem(item)} ${owned ? '✅' : ''}</span>
+        <span class="coord-iname">${escapeHtml(trItem(item))} ${owned ? '✅' : ''}</span>
       </div>`;
   }).join('');
   document.getElementById('sharedCoordBody').innerHTML = `

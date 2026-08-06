@@ -16,10 +16,19 @@ function pfDefaultName() {
   return (typeof CURRENT_LANG !== 'undefined' && CURRENT_LANG === 'en') ? 'Main' : 'メイン';
 }
 
+// id はこのファイル内で常に「英数字・アンダースコア・ハイフンのみ」で生成しているため、
+// それ以外の形式は不正な値（データ引継ぎ/バックアップの改ざん等）とみなして除外する。
+// onclick属性へid をそのまま埋め込んでいる箇所があるため、ここで弾いておくことでXSSを防ぐ。
+function pfIsSafeId(id) {
+  return typeof id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(id);
+}
+
 function loadProfiles() {
   try {
-    const list = JSON.parse(localStorage.getItem(PROFILES_KEY));
-    if (Array.isArray(list) && list.length > 0) return list;
+    let list = JSON.parse(localStorage.getItem(PROFILES_KEY));
+    if (!Array.isArray(list)) return null;
+    list = list.filter(p => p && pfIsSafeId(p.id) && typeof p.name === 'string');
+    if (list.length > 0) return list;
   } catch (_) {}
   return null;
 }
