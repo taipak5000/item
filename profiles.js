@@ -606,24 +606,24 @@ async function srchBuildIndex() {
   // 1) アイテム（item自身の12カテゴリページから抽出）
   await Promise.all(SRCH_ITEM_CATS.map(async cat => {
     try {
-      const res = await fetch(`${SITE_ROOT}/m/${cat.file}`);
+      const res = await fetch(`${SITE_ROOT}/tai-item/${cat.file}`);
       const html = await res.text();
       const data = srchExtractArray(html, 'ITEMS_DATA') || [];
       data.forEach(it => idx.items.push({
         name: it.name, nameEn: it.nameEn || '', event: it.event || '',
-        catName: cat.name, url: `${SITE_ROOT}/m/${cat.file}`,
-        img: `${SITE_ROOT}/m/images/${cat.key}/${it.id}.png`
+        catName: cat.name, url: `${SITE_ROOT}/tai-item/${cat.file}`,
+        img: `${SITE_ROOT}/tai-item/images/${cat.key}/${it.id}.png`
       }));
     } catch (e) { console.error(cat.key, e); }
   }));
 
   // 2) エモート（他サイトがまだ公開されていなければ0件のまま）
   try {
-    const res = await fetch(`${SITE_ROOT}/e/index.html`);
+    const res = await fetch(`${SITE_ROOT}/tai-emote/index.html`);
     const html = await res.text();
     (srchExtractArray(html, 'EMOTES_DATA') || []).forEach(em => idx.emotes.push({
       name: em.name, nameEn: em.nameEn || '', location: em.location || '',
-      maxLevel: em.maxLevel, url: `${SITE_ROOT}/e/`
+      maxLevel: em.maxLevel, url: `${SITE_ROOT}/tai-emote/`
     }));
   } catch (e) { console.error('emote', e); }
 
@@ -641,7 +641,7 @@ async function srchBuildIndex() {
   // 4) 季節・イベント名（アイテムに登場する全イベント名）
   const evSet = new Set();
   idx.items.forEach(it => { if (it.event) evSet.add(it.event); });
-  idx.events = [...evSet].map(name => ({ name, url: `${SITE_ROOT}/m/index.html` }));
+  idx.events = [...evSet].map(name => ({ name, url: `${SITE_ROOT}/tai-item/index.html` }));
 
   return idx;
 }
