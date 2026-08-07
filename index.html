@@ -1959,10 +1959,19 @@ function renderWishList() {
    ================================================================ */
 
 // カテゴリの所持アイテム（名前付き）をLocalStorageから取得
+// 保存データは各カテゴリページ側で { id, name, nameEn } のみに絞って保存されているため、
+// img等の最新フィールドを allItemsCache から補完してから返す
+// （こうしておかないと、Wikiホットリンク化より前に所持登録したアイテムの画像が
+// 常にカテゴリの見本アイコンになってしまう）
 function getOwnedItemsForCat(catKey) {
   try {
     const d = JSON.parse(localStorage.getItem(nsKey('gameItems_' + catKey)));
-    return d?.ownedItems || [];
+    const stored = d?.ownedItems || [];
+    if (!allItemsCache) return stored;
+    return stored.map(saved => {
+      const fresh = allItemsCache.find(it => it.catKey === catKey && it.id === saved.id);
+      return fresh ? { ...saved, ...fresh } : saved;
+    });
   } catch { return []; }
 }
 
