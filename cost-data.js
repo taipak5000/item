@@ -584,6 +584,7 @@ const ITEM_COST_DATA = {
     { id: 'head_accessory_020', name: '月灯りイヤリング', source: '月灯りの日々', cost: { type: 'money', value: 400 }, dye: false },
     { id: 'head_accessory_021', name: 'いたずら枯れ木角', source: 'いたずらな日々', cost: { type: 'money', value: 1300 }, dye: false },
     { id: 'head_accessory_022', name: '聖なる飾り角', source: '聖なる星の日々', cost: { type: 'money', value: 1950 }, dye: true },
+    { id: 'head_accessory_022b', name: '花笑むひまわり耳飾り', source: '花笑む日々', cost: { type: 'money', value: 400, note: '元表記は$2.99。' }, dye: false },
     { id: 'head_accessory_023', name: '自然のフィンイヤー', source: '自然の日々', cost: { type: 'money', value: 1950, setId: 'set_shizen_outfit_headacc', note: 'アウトフィットとのセット価格です（単品の価格ではありません）。' }, dye: false },
     { id: 'head_accessory_024', name: '花火大会耳飾り', source: '花鳥花火大会', cost: { type: 'unknown' }, dye: true },
   ],
