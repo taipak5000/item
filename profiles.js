@@ -708,7 +708,7 @@ async function srchBuildIndex() {
       data.forEach(it => idx.items.push({
         name: it.name, nameEn: it.nameEn || '', event: it.event || '',
         catName: cat.name, url: `${SITE_ROOT}/tai-item/${cat.file}`,
-        img: `${SITE_ROOT}/tai-item/images/${cat.key}/${it.id}.png`
+        img: it.img || ''
       }));
     } catch (e) { console.error(cat.key, e); }
   }));
@@ -791,7 +791,7 @@ async function srchRun() {
   resultsEl.innerHTML =
     group(pfT('アイテム', 'Items'), '🗂️', items.map(it => `
       <a class="srch-row" href="${it.url}">
-        <div class="srch-icon"><img src="${it.img}" alt="" loading="lazy" onerror="this.remove()"></div>
+        <div class="srch-icon">${it.img ? `<img src="${it.img}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '🗂️'}</div>
         <div class="srch-info">
           <div class="srch-name">${escapeHtmlPf(it.name)}</div>
           <div class="srch-meta">${escapeHtmlPf(it.catName)} ・ ${escapeHtmlPf(it.event)}</div>
