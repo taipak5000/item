@@ -2187,7 +2187,7 @@ function renderMyCoordList() {
       const cat = CATS.find(c => c.key === catKey);
       if (!cat || !item) return '';
       return `<div class="coord-item-row">
-        <span class="coord-cat">${catIconHtml(cat)} ${trCat(cat.name)}</span>
+        <span class="coord-cat">${itemIconHtml(cat, item)} ${trCat(cat.name)}</span>
         <span class="coord-iname">${escapeHtml(trItem(item))}</span>
       </div>`;
     }).join('');
