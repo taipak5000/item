@@ -369,12 +369,11 @@ function setSeasonAcquire(itemId, mode) {
 // 各カテゴリページ本体から画像URL（img: 'https://...'）を取り出し、
 // id をキーにしたマップを作る。cost-data.js 自体は画像を持たないため、
 // 各カテゴリページ（cape.html 等）を fetch して補完する。
-// ※ large_placeable / small_placeable はまだ画像URLを持たないため対象外。
 const ITEM_IMG_CAT_FILES = {
   cape: 'cape.html', mask: 'mask.html', necklace: 'necklace.html',
   hairstyle: 'hairstyle.html', hair_accessory: 'hair_accessory.html', head_accessory: 'head_accessory.html',
   outfit: 'outfit.html', shoes: 'shoes.html', face_accessory: 'face_accessory.html',
-  portable_item: 'portable_item.html',
+  portable_item: 'portable_item.html', large_placeable: 'large_placeable.html', small_placeable: 'small_placeable.html',
 };
 let itemImgMap = null;
 let itemImgMapLoadingPromise = null;
