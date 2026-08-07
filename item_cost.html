@@ -255,6 +255,16 @@
         </select>
       </div>
       <div class="jump-bar-row">
+        <label for="costTypeFilterSelect" class="jump-label" data-i18n-en="💰 Currency">💰 通貨</label>
+        <select id="costTypeFilterSelect" class="jump-select" onchange="renderItems()">
+          <option value="all" data-i18n-en="Show all">すべて表示</option>
+          <option value="candle" data-i18n-en="Candles">キャンドル</option>
+          <option value="starCandle" data-i18n-en="Season Candles">星のキャンドル</option>
+          <option value="heart" data-i18n-en="Hearts">ハート</option>
+          <option value="money" data-i18n-en="Real Money">実額</option>
+        </select>
+      </div>
+      <div class="jump-bar-row">
         <label for="jumpSelect" class="jump-label" data-i18n-en="🧭 Jump to">🧭 ジャンプ</label>
         <select id="jumpSelect" class="jump-select" onchange="jumpToGroup(this.value)">
           <option value="" data-i18n-en="Select a season/day to jump to">季節・日々を選択してジャンプ</option>
@@ -440,9 +450,12 @@ function renderItems() {
   const allItems = getAllItems();
   const ownFilterEl = document.getElementById('ownFilterSelect');
   const ownFilter = ownFilterEl ? ownFilterEl.value : 'all';
+  const costTypeFilterEl = document.getElementById('costTypeFilterSelect');
+  const costTypeFilter = costTypeFilterEl ? costTypeFilterEl.value : 'all';
   const items = allItems.filter(item => {
-    if (ownFilter === 'owned') return item.owned;
-    if (ownFilter === 'notOwned') return !item.owned;
+    if (ownFilter === 'owned' && !item.owned) return false;
+    if (ownFilter === 'notOwned' && item.owned) return false;
+    if (costTypeFilter !== 'all' && (!item.cost || item.cost.type !== costTypeFilter)) return false;
     return true;
   });
 
