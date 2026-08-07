@@ -2745,7 +2745,7 @@ function renderSharedCoordModal() {
     const owned = getOwnedItemsForCat(cat.key).some(o => o.id === item.id);
     return `
       <div class="coord-item-row">
-        <span class="coord-cat">${catIconHtml(cat)} ${trCat(cat.name)}</span>
+        <span class="coord-cat">${itemIconHtml(cat, item)} ${trCat(cat.name)}</span>
         <span class="coord-iname">${escapeHtml(trItem(item))} ${owned ? '✅' : ''}</span>
       </div>`;
   }).join('');
