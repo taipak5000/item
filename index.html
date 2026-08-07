@@ -407,6 +407,9 @@
       animation: mslide 0.3s cubic-bezier(0.22,1,0.36,1);
     }
     @keyframes mslide { from { transform:translateY(100%) } to { transform:translateY(0) } }
+    /* マイコーデ・ランダムコーデは中身の量で高さが大きく変わりやすいため、
+       最低限の高さを揃えて見た目のサイズ差を減らす */
+    #randomModal .modal-card, #myCoordModal .modal-card { min-height: 70vh; }
 
     .modal-header {
       display: flex; align-items: center;

@@ -23,11 +23,19 @@ function pfIsSafeId(id) {
   return typeof id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(id);
 }
 
+// アカウントカラー（任意）。#RRGGBB 形式のみを許可する。
+function pfIsSafeColor(c) {
+  return typeof c === 'string' && /^#[0-9A-Fa-f]{6}$/.test(c);
+}
+
 function loadProfiles() {
   try {
     let list = JSON.parse(localStorage.getItem(PROFILES_KEY));
     if (!Array.isArray(list)) return null;
-    list = list.filter(p => p && pfIsSafeId(p.id) && typeof p.name === 'string');
+    list = list.filter(p => p && pfIsSafeId(p.id) && typeof p.name === 'string').map(p => {
+      if (p.color !== undefined && !pfIsSafeColor(p.color)) { const { color, ...rest } = p; return rest; }
+      return p;
+    });
     if (list.length > 0) return list;
   } catch (_) {}
   return null;
@@ -59,6 +67,58 @@ function getActiveProfileId() {
 function getActiveProfile() {
   const list = ensureProfilesInit();
   return list.find(p => p.id === getActiveProfileId()) || list[0];
+}
+
+/* ================================================================
+   プロフィールごとのアカウントカラー（任意）
+   選んだ色を、このサイトのイメージカラー（オレンジ）に反映する。
+   サイトごとにイメージカラーのCSS変数名が違うため、ここの3行だけ
+   サイトに合わせて書き換えれば他サイトにも展開できる。
+   ================================================================ */
+const PF_THEME_MAIN_VAR = '--orange';
+const PF_THEME_DARK_VAR = '--orange-d';
+const PF_THEME_BG_VAR   = '--orange-bg';
+
+function pfHexToRgb(hex) {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : null;
+}
+function pfDarkenHex(hex, amt) {
+  const c = pfHexToRgb(hex);
+  if (!c) return hex;
+  const f = v => Math.max(0, Math.round(v * (1 - amt))).toString(16).padStart(2, '0');
+  return `#${f(c.r)}${f(c.g)}${f(c.b)}`;
+}
+function pfApplyThemeColor(hex) {
+  const root = document.documentElement.style;
+  if (!hex || !pfIsSafeColor(hex)) {
+    root.removeProperty(PF_THEME_MAIN_VAR);
+    root.removeProperty(PF_THEME_DARK_VAR);
+    root.removeProperty(PF_THEME_BG_VAR);
+    return;
+  }
+  const c = pfHexToRgb(hex);
+  root.setProperty(PF_THEME_MAIN_VAR, hex);
+  root.setProperty(PF_THEME_DARK_VAR, pfDarkenHex(hex, 0.15));
+  root.setProperty(PF_THEME_BG_VAR, `rgba(${c.r}, ${c.g}, ${c.b}, 0.10)`);
+}
+function pfSetProfileColor(id, color) {
+  if (!pfIsSafeColor(color)) return;
+  const list = ensureProfilesInit();
+  const p = list.find(x => x.id === id);
+  if (!p) return;
+  p.color = color;
+  saveProfiles(list);
+  if (id === getActiveProfileId()) pfApplyThemeColor(color);
+}
+function pfClearProfileColor(id) {
+  const list = ensureProfilesInit();
+  const p = list.find(x => x.id === id);
+  if (!p) return;
+  delete p.color;
+  saveProfiles(list);
+  if (id === getActiveProfileId()) pfApplyThemeColor(null);
+  pfRenderModal();
 }
 
 // 保存キーをプロフィールごとに名前空間化する。
@@ -150,6 +210,12 @@ function pfInjectStyle() {
     .pf-row-confirm-text { flex: 1; font-size: 13px; color: var(--text); line-height: 1.4; }
     .pf-row-btn-ok { background: var(--blue); color: #fff; border: none; }
     .pf-row-btn-danger { background: #ff3b30; color: #fff; border: none; }
+    .pf-color-input { width: 28px; height: 28px; padding: 0; border: 1px solid var(--sep); border-radius: 50%;
+      background: none; cursor: pointer; flex-shrink: 0; overflow: hidden; }
+    .pf-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+    .pf-color-input::-webkit-color-swatch { border: none; border-radius: 50%; }
+    .pf-color-input::-moz-color-swatch { border: none; border-radius: 50%; }
+    .pf-color-clear-btn { font-size: 10px; }
 
     .pf-currency-section { margin-top: 14px; padding-top: 14px; border-top: 0.5px solid var(--sep); }
     .pf-currency-title { font-size: 12px; font-weight: 700; color: var(--text-2); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.4px; }
@@ -328,9 +394,13 @@ function pfRenderModal() {
         </div>`;
     }
 
+    const colorVal = pfIsSafeColor(p.color) ? p.color : '#FF9500';
     return `
       <div class="pf-row ${isActive ? 'active' : ''}">
+        <input type="color" class="pf-color-input" value="${colorVal}" title="${pfT('アカウントカラー','Account color')}"
+          onchange="pfSetProfileColor('${p.id}', this.value)">
         <span class="pf-row-name" onclick="switchProfile('${p.id}')">${isActive ? '✅ ' : ''}${escapeHtmlPf(p.name)}</span>
+        ${p.color ? `<button type="button" class="pf-icon-btn pf-color-clear-btn" title="${pfT('カラーを初期値に戻す','Reset color to default')}" onclick="pfClearProfileColor('${p.id}')">↺</button>` : ''}
         <button type="button" class="pf-icon-btn" title="${pfT('名前を変更','Rename')}" onclick="pfStartRename('${p.id}')">✏️</button>
         ${list.length > 1 ? `<button type="button" class="pf-icon-btn" title="${pfT('削除','Delete')}" onclick="pfStartDelete('${p.id}')">🗑️</button>` : ''}
       </div>`;
@@ -386,6 +456,7 @@ function pfConfirmDeleteInline(id) {
 function pfInit() {
   ensureProfilesInit();
   pfInjectStyle();
+  pfApplyThemeColor(getActiveProfile().color);
 
   const nav = document.querySelector('nav');
   if (!nav) return;
