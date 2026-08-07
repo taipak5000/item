@@ -362,7 +362,7 @@
 const CAT_KEY = 'head_accessory'; 
 
 // 2. このカテゴリの基本情報
-const CAT_INFO = { name: 'ヘッドアクセサリー', icon: '🎧' , img: 'icons/head_accessory.png'};
+const CAT_INFO = { name: 'ヘッドアクセサリー', icon: '🎧' , img: 'https://static.wikia.nocookie.net/sky-children-of-the-light/images/1/12/Mimi-4117_04_hairtousle_teen_hat.png/revision/latest/scale-to-width-down/51'};
 
 // 2-b. アイテム画像の保存フォルダ（ファイル名は id と揃えてください。例: images/head_accessory/head_accessory_001.png）
 //      画像がまだ無いアイテムは自動でプレースホルダーアイコンが表示されます
@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pageTitle').textContent = CURRENT_LANG === 'en' ? `🗂️ ${catNameTr} Checklist` : `🗂️ ${CAT_INFO.name}チェック`;
   document.getElementById('catName').textContent = catNameTr;
   document.getElementById('catIcon').innerHTML = CAT_INFO.img
-  ? `<img src="${CAT_INFO.img}" alt="${CAT_INFO.name}" loading="lazy">`
+  ? `<img src="${CAT_INFO.img}" alt="${CAT_INFO.name}" loading="lazy" referrerpolicy="no-referrer">`
   : CAT_INFO.icon;
   // ローカルストレージからユーザーデータを復元
   loadUserData();

@@ -386,7 +386,7 @@
 const CAT_KEY = 'cape'; 
 
 // 2. このカテゴリの基本情報
-const CAT_INFO = { name: 'ケープ', icon: '🪽', img: 'icons/cape.png' };
+const CAT_INFO = { name: 'ケープ', icon: '🪽', img: 'https://static.wikia.nocookie.net/sky-children-of-the-light/images/9/9f/Cape-category-Ray.png/revision/latest/scale-to-width-down/51' };
 
 // 2-b. アイテム画像の保存フォルダ（ファイル名は id と揃えてください。例: images/cape/cape_001.png）
 //      画像がまだ無いアイテムは自動でプレースホルダーアイコンが表示されます
@@ -610,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pageTitle').textContent = CURRENT_LANG === 'en' ? `🗂️ ${catNameTr} Checklist` : `🗂️ ${CAT_INFO.name}チェック`;
   document.getElementById('catName').textContent = catNameTr;
   document.getElementById('catIcon').innerHTML = CAT_INFO.img
-  ? `<img src="${CAT_INFO.img}" alt="${CAT_INFO.name}" loading="lazy">`
+  ? `<img src="${CAT_INFO.img}" alt="${CAT_INFO.name}" loading="lazy" referrerpolicy="no-referrer">`
   : CAT_INFO.icon;
 
   // ローカルストレージからユーザーデータを復元

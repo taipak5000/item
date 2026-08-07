@@ -374,7 +374,7 @@
 const CAT_KEY = 'face_accessory'; 
 
 // 2. このカテゴリの基本情報
-const CAT_INFO = { name: 'フェイスアクセサリー', icon: '💎', img: 'icons/face_accessory.png' };
+const CAT_INFO = { name: 'フェイスアクセサリー', icon: '💎', img: 'https://static.wikia.nocookie.net/sky-children-of-the-light/images/b/bc/RejectingVoyager-3.png/revision/latest/scale-to-width-down/51' };
 
 // 2-b. アイテム画像の保存フォルダ（ファイル名は id と揃えてください。例: images/face_accessory/face_accessory_001.png）
 //      画像がまだ無いアイテムは自動でプレースホルダーアイコンが表示されます
@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pageTitle').textContent = CURRENT_LANG === 'en' ? `🗂️ ${catNameTr} Checklist` : `🗂️ ${CAT_INFO.name}チェック`;
   document.getElementById('catName').textContent = catNameTr;
  document.getElementById('catIcon').innerHTML = CAT_INFO.img
-  ? `<img src="${CAT_INFO.img}" alt="${CAT_INFO.name}" loading="lazy">`
+  ? `<img src="${CAT_INFO.img}" alt="${CAT_INFO.name}" loading="lazy" referrerpolicy="no-referrer">`
   : CAT_INFO.icon;
 
   // ローカルストレージからユーザーデータを復元

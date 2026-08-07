@@ -1316,25 +1316,25 @@
 <script>
 /* ── Category list ──────────────────────── */
 const CATS = [
-  { key:'outfit',          name:'アウトフィット',         file:'outfit.html',          icon:'🧥', img:'icons/outfit.png' },
-  { key:'shoes',           name:'シューズ',               file:'shoes.html',           icon:'👟', img:'icons/shoes.png' },
-  { key:'mask',            name:'マスク',                 file:'mask.html',            icon:'🎭', img:'icons/mask.png' },
-  { key:'face_accessory',  name:'フェイスアクセサリー',   file:'face_accessory.html',  icon:'💎', img:'icons/face_accessory.png' },
-  { key:'necklace',        name:'ネックレス',             file:'necklace.html',        icon:'📿', img:'icons/necklace.png' },
-  { key:'hairstyle',       name:'ヘアスタイル',           file:'hairstyle.html',       icon:'💇', img:'icons/hairstyle.png' },
-  { key:'hair_accessory',  name:'ヘアアクセサリー',       file:'hair_accessory.html',  icon:'👒', img:'icons/hair_accessory.png' },
-  { key:'head_accessory',  name:'ヘッドアクセサリー',     file:'head_accessory.html',  icon:'🎧', img:'icons/head_accessory.png' },
-  { key:'cape',            name:'ケープ',                 file:'cape.html',            icon:'🪽‪', img:'icons/cape.png' },
-  { key:'portable_item',   name:'持ち運べるアイテム',     file:'portable_item.html',   icon:'🎹', img:'icons/portable_item.png' },
-  { key:'large_placeable', name:'大きい設置アイテム',     file:'large_placeable.html', icon:'🏛️', img:'icons/large_placeable.png' },
-  { key:'small_placeable', name:'小さい設置アイテム',     file:'small_placeable.html', icon:'🏮', img:'icons/small_placeable.png' },
+  { key:'outfit',          name:'アウトフィット',         file:'outfit.html',          icon:'🧥', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/a/aa/Icon_pants_default.png/revision/latest/scale-to-width-down/51' },
+  { key:'shoes',           name:'シューズ',               file:'shoes.html',           icon:'👟', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/c/cc/Peeking-Postman-Shoes-icon.png/revision/latest/scale-to-width-down/51' },
+  { key:'mask',            name:'マスク',                 file:'mask.html',            icon:'🎭', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/c/cf/Icon_mask_default.png/revision/latest/scale-to-width-down/51' },
+  { key:'face_accessory',  name:'フェイスアクセサリー',   file:'face_accessory.html',  icon:'💎', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/b/bc/RejectingVoyager-3.png/revision/latest/scale-to-width-down/51' },
+  { key:'necklace',        name:'ネックレス',             file:'necklace.html',        icon:'📿', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/7/73/1_Gratitude.png/revision/latest/scale-to-width-down/51' },
+  { key:'hairstyle',       name:'ヘアスタイル',           file:'hairstyle.html',       icon:'💇', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/4/47/Icon_hair_default.png/revision/latest/scale-to-width-down/51' },
+  { key:'hair_accessory',  name:'ヘアアクセサリー',       file:'hair_accessory.html',  icon:'👒', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/6/6d/Mimi-4117_07_chill_sunbather_hat.png/revision/latest/scale-to-width-down/51' },
+  { key:'head_accessory',  name:'ヘッドアクセサリー',     file:'head_accessory.html',  icon:'🎧', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/1/12/Mimi-4117_04_hairtousle_teen_hat.png/revision/latest/scale-to-width-down/51' },
+  { key:'cape',            name:'ケープ',                 file:'cape.html',            icon:'🪽‪', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/9/9f/Cape-category-Ray.png/revision/latest/scale-to-width-down/51' },
+  { key:'portable_item',   name:'持ち運べるアイテム',     file:'portable_item.html',   icon:'🎹', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/c/c0/LaughingLightCatcher-2.png/revision/latest/scale-to-width-down/51' },
+  { key:'large_placeable', name:'大きい設置アイテム',     file:'large_placeable.html', icon:'🏛️', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/0/03/Sunlight-Manta-Float-icon.png/revision/latest/scale-to-width-down/51' },
+  { key:'small_placeable', name:'小さい設置アイテム',     file:'small_placeable.html', icon:'🏮', img:'https://static.wikia.nocookie.net/sky-children-of-the-light/images/6/6c/Icon_prop_vault_lantern.png/revision/latest/scale-to-width-down/51' },
 ];
 
 // 絵文字アイコン or 画像アイコンを出し分けるヘルパー
 // img が指定されているカテゴリは画像、まだ画像がないカテゴリ（例: 未対応分）は絵文字のまま表示する
 function catIconHtml(cat) {
   return cat.img
-    ? `<img src="${cat.img}" alt="${escapeHtml(cat.name)}" loading="lazy">`
+    ? `<img src="${cat.img}" alt="${escapeHtml(cat.name)}" loading="lazy" referrerpolicy="no-referrer">`
     : cat.icon;
 }
 
