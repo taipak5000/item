@@ -71,36 +71,25 @@ function getActiveProfile() {
 
 /* ================================================================
    プロフィールごとのアカウントカラー（任意）
-   選んだ色を、このサイトのイメージカラー（オレンジ）に反映する。
-   サイトごとにイメージカラーのCSS変数名が違うため、ここの3行だけ
-   サイトに合わせて書き換えれば他サイトにも展開できる。
+   選んだ色は、フォントやボタンではなく画面背景へのうっすらとした
+   色重ねとして反映する。CSS変数名・仕組みは全サイト共通（taipak5000.
+   github.io 配下は同一originのためプロフィール自体も共有されており、
+   storageイベントで他タブ・他サイトへも即座に反映される）。
    ================================================================ */
-const PF_THEME_MAIN_VAR = '--orange';
-const PF_THEME_DARK_VAR = '--orange-d';
-const PF_THEME_BG_VAR   = '--orange-bg';
+const PF_TINT_VAR = '--pf-tint-rgb';
 
 function pfHexToRgb(hex) {
   const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
   return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : null;
 }
-function pfDarkenHex(hex, amt) {
-  const c = pfHexToRgb(hex);
-  if (!c) return hex;
-  const f = v => Math.max(0, Math.round(v * (1 - amt))).toString(16).padStart(2, '0');
-  return `#${f(c.r)}${f(c.g)}${f(c.b)}`;
-}
 function pfApplyThemeColor(hex) {
   const root = document.documentElement.style;
   if (!hex || !pfIsSafeColor(hex)) {
-    root.removeProperty(PF_THEME_MAIN_VAR);
-    root.removeProperty(PF_THEME_DARK_VAR);
-    root.removeProperty(PF_THEME_BG_VAR);
+    root.removeProperty(PF_TINT_VAR);
     return;
   }
   const c = pfHexToRgb(hex);
-  root.setProperty(PF_THEME_MAIN_VAR, hex);
-  root.setProperty(PF_THEME_DARK_VAR, pfDarkenHex(hex, 0.15));
-  root.setProperty(PF_THEME_BG_VAR, `rgba(${c.r}, ${c.g}, ${c.b}, 0.10)`);
+  root.setProperty(PF_TINT_VAR, `rgba(${c.r}, ${c.g}, ${c.b}, 0.07)`);
 }
 function pfSetProfileColor(id, color) {
   if (!pfIsSafeColor(color)) return;
@@ -216,6 +205,9 @@ function pfInjectStyle() {
     .pf-color-input::-webkit-color-swatch { border: none; border-radius: 50%; }
     .pf-color-input::-moz-color-swatch { border: none; border-radius: 50%; }
     .pf-color-clear-btn { font-size: 10px; }
+
+    .pf-tint-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 2;
+      background-color: var(--pf-tint-rgb, transparent); }
 
     .pf-currency-section { margin-top: 14px; padding-top: 14px; border-top: 0.5px solid var(--sep); }
     .pf-currency-title { font-size: 12px; font-weight: 700; color: var(--text-2); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.4px;
@@ -469,6 +461,15 @@ function pfInit() {
   ensureProfilesInit();
   pfInjectStyle();
   pfApplyThemeColor(getActiveProfile().color);
+
+  const tint = document.createElement('div');
+  tint.className = 'pf-tint-overlay';
+  tint.setAttribute('aria-hidden', 'true');
+  document.body.insertAdjacentElement('afterbegin', tint);
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === PROFILES_KEY) pfApplyThemeColor(getActiveProfile().color);
+  });
 
   const nav = document.querySelector('nav');
   if (!nav) return;
