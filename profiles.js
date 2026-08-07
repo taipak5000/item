@@ -696,6 +696,11 @@ function srchExtractArray(html, varName) {
   try { return new Function('return ' + m[1] + ';')(); } catch (e) { console.error(varName, e); return null; }
 }
 
+// 🚧 エモート管理・羽トラッカーはまだ検索結果として案内したくないため、一旦取得自体をオフにしている。
+// 公開してよくなったら true に戻すだけで復活する。
+const SRCH_INCLUDE_EMOTES = false;
+const SRCH_INCLUDE_SPIRITS = false;
+
 async function srchBuildIndex() {
   const idx = { items: [], emotes: [], spirits: [], events: [] };
 
@@ -714,25 +719,29 @@ async function srchBuildIndex() {
   }));
 
   // 2) エモート（他サイトがまだ公開されていなければ0件のまま）
-  try {
-    const res = await fetch(`${SITE_ROOT}/tai-emote/index.html`);
-    const html = await res.text();
-    (srchExtractArray(html, 'EMOTES_DATA') || []).forEach(em => idx.emotes.push({
-      name: em.name, nameEn: em.nameEn || '', location: em.location || '',
-      maxLevel: em.maxLevel, url: `${SITE_ROOT}/tai-emote/`
-    }));
-  } catch (e) { console.error('emote', e); }
+  if (SRCH_INCLUDE_EMOTES) {
+    try {
+      const res = await fetch(`${SITE_ROOT}/tai-emote/index.html`);
+      const html = await res.text();
+      (srchExtractArray(html, 'EMOTES_DATA') || []).forEach(em => idx.emotes.push({
+        name: em.name, nameEn: em.nameEn || '', location: em.location || '',
+        maxLevel: em.maxLevel, url: `${SITE_ROOT}/tai-emote/`
+      }));
+    } catch (e) { console.error('emote', e); }
+  }
 
   // 3) 精霊（羽トラッカーの季節別精霊リスト）
-  try {
-    const res = await fetch(`${SITE_ROOT}/wings/index.html`);
-    const html = await res.text();
-    (srchExtractArray(html, 'SEASON_SPIRITS') || []).forEach(ss => {
-      (ss.spirits || []).forEach(sp => idx.spirits.push({
-        name: sp, season: ss.season, url: `${SITE_ROOT}/wings/`
-      }));
-    });
-  } catch (e) { console.error('wings', e); }
+  if (SRCH_INCLUDE_SPIRITS) {
+    try {
+      const res = await fetch(`${SITE_ROOT}/wings/index.html`);
+      const html = await res.text();
+      (srchExtractArray(html, 'SEASON_SPIRITS') || []).forEach(ss => {
+        (ss.spirits || []).forEach(sp => idx.spirits.push({
+          name: sp, season: ss.season, url: `${SITE_ROOT}/wings/`
+        }));
+      });
+    } catch (e) { console.error('wings', e); }
+  }
 
   // 4) 季節・イベント名（アイテムに登場する全イベント名）
   const evSet = new Set();
