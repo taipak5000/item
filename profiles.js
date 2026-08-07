@@ -218,7 +218,9 @@ function pfInjectStyle() {
     .pf-color-clear-btn { font-size: 10px; }
 
     .pf-currency-section { margin-top: 14px; padding-top: 14px; border-top: 0.5px solid var(--sep); }
-    .pf-currency-title { font-size: 12px; font-weight: 700; color: var(--text-2); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .pf-currency-title { font-size: 12px; font-weight: 700; color: var(--text-2); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.4px;
+      display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+    .pf-currency-toggle-label { font-size: 11px; font-weight: 700; text-transform: none; letter-spacing: 0; }
     .pf-currency-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 2px; }
     .pf-currency-label { font-size: 13px; color: var(--text); }
     .pf-currency-input { width: 90px; background: var(--bg); border: 1px solid var(--sep); border-radius: 6px;
@@ -289,7 +291,7 @@ function pfCurrencyLabel(key) {
   const labels = {
     candle:         ['キャンドル', 'Candles'],
     heart:          ['ハート', 'Hearts'],
-    ascendedCandle: ['昇華キャンドル', 'Ascended Candles'],
+    ascendedCandle: ['星のキャンドル', 'Star Candles'],
     seasonCandle:   ['シーズンキャンドル', 'Season Candles'],
     seasonHeart:    ['シーズンハート', 'Season Hearts'],
     eventCurrency:  ['イベント通貨', 'Event Currency'],
@@ -350,6 +352,19 @@ function pfRenderCurrency() {
       <input type="number" min="0" class="pf-currency-input" value="${c[f.key]}"
         onchange="pfSaveCurrencyField('${f.key}', this.value)">
     </div>`).join('');
+  pfSyncCurrencyToggleUI();
+}
+
+let pfCurrencyOpen = true;
+function pfToggleCurrency() {
+  pfCurrencyOpen = !pfCurrencyOpen;
+  pfSyncCurrencyToggleUI();
+}
+function pfSyncCurrencyToggleUI() {
+  const body = document.getElementById('pfCurrencyBody');
+  const label = document.getElementById('pfCurrencyToggleLabel');
+  if (body) body.style.display = pfCurrencyOpen ? '' : 'none';
+  if (label) label.textContent = pfCurrencyOpen ? pfT('閉じる ▲', 'Close ▲') : pfT('開く ▼', 'Open ▼');
 }
 
 function pfOpenModal() {
@@ -484,7 +499,10 @@ function pfInit() {
         'Switching profiles swaps your owned items, My Coords, and favorites to the selected profile\'s data (everything is stored locally in this browser).'
       )}</div>
       <div class="pf-currency-section">
-        <div class="pf-currency-title">💰 ${pfT('所持通貨', 'Owned Currency')}</div>
+        <div class="pf-currency-title" onclick="pfToggleCurrency()">
+          <span>💰 ${pfT('所持通貨', 'Owned Currency')}</span>
+          <span class="pf-currency-toggle-label" id="pfCurrencyToggleLabel">${pfT('閉じる ▲', 'Close ▲')}</span>
+        </div>
         <div id="pfCurrencyBody"></div>
       </div>
       <button type="button" class="pf-icon-btn" style="width:100%; margin-top:10px; padding:8px;" onclick="dmOpenModal()">💾 ${pfT('データのバックアップ・復元・削除','Backup / restore / erase data')}</button>
