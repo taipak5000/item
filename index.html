@@ -2464,7 +2464,7 @@ async function exportElementAsImage(buildCardFn, filenameBase, opts = {}) {
   try {
     await ensureHtml2Canvas();
     card = buildCardFn();
-    const canvas = await html2canvas(card, { backgroundColor: null, scale: 2 });
+    const canvas = await html2canvas(card, { backgroundColor: null, scale: 2, useCORS: true });
     const filename = sanitizeFilename(filenameBase) + '.png';
 
     const shareResult = await tryShareImage(canvas, filename, shareText);
